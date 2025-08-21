@@ -1,0 +1,47 @@
+STS_HHA_A4A, STS_HHA_FACILITY_RPTS,  STS_HOS_FACILITY_RPTS, STS_LOAD_FNDR_FILE, STS_PTA_BPymnts_MN_RPTS, STS_PTA_BPymnts_RPTS
+
+DASHBOARD_BUILD, DASHBOARD_VOL_RPT_CY, DASHBOARD_VOL_RPT_FY, DASHBOARD_VOL_RPT_Monthly
+
+CLEAN_DATA_DIR_FILES, DEMO_FNDR_Rename_Marx_FF, DOJ_PISTORINO, PHYZIP-SUM
+
+1) Send Email
+sendEmail.py "BIA_SUPPORT@cms.hhs.gov" "bit-extractalerts@index-analytics.com" "Test Email From new DEI server" "Hello World!"
+
+2) connectivity to AWS 
+aws s3 ls s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/Finder_Files/archive 
+aws s3 ls s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/Finder_Files/archive
+
+aws s3 ls s3://aws-cms-oit-bit-non-prod-ddom-extracts/xtr/DEV/CALENDAR
+
+d1-infa-dei-1
+
+
+aws s3 cp ./CalendarConfigFile.csv s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/config/CalendarConfigFile.csv
+
+
+python3 sendEmailHTML.py "BIA_SUPPORT@cms.hhs.gov" "bit-extractsupport@index-analytics.com" "sendEmail multi-attachment test (DEV)" "sendEmail multi-attachment test (DEV). \n\n" "/app/IDRC/XTR/CMS/data/PartAB_Year_20250611.151951.csv,/app/IDRC/XTR/CMS/data/PartAB_Month_20250611.151951.csv"
+
+
+
+CLEAN_DATA_DIRS
+DASHBOARD_VOL_RPT_CY
+DASHBOARD_VOL_RPT_FY
+DASHBOARD_VOL_RPT_Monthly
+DEMO_FNDR_Rename_Marx_FF
+DOJ_PISTORINO
+GITHUB
+OPM_HI_PTA_HHA
+PAC_Quarterly_Extract- Obsolete
+PHYZIP-SUM
+Processes - Llist
+PTD_DUAL_RERUN
+Reporting
+SRTR_FFS_PTA_INP
+STS_HHA_A4A
+STS_HHA_FACILITY_RPTS
+STS_HOS_FACILITY_RPTS
+STS_LOAD_FNDR_FILE
+STS_PTA_BPymnts_MN_RPTS
+STS_PTA_BPymnts_RPTS
+VA_PARTD_LOAD_FNDR_FILE
+VA_PARTD_Q1
