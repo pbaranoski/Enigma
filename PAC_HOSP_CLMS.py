@@ -1,0 +1,270 @@
+#!/usr/bin/env python
+########################################################################################################
+# Name:  PAC_HOSP_CLMS.py
+#
+# Desc: Script to Extract Hospice Claims
+#
+# Created: Viren Khanna  12/07/2022  
+#
+########################################################################################################
+import os
+import sys
+import datetime
+from datetime import datetime
+
+currentDirectory = os.path.dirname(os.path.realpath(__file__))
+rootDirectory = os.path.abspath(os.path.join(currentDirectory, ".."))
+utilDirectory = os.getenv('CMN_UTIL')
+
+sys.path.append(rootDirectory)
+sys.path.append(utilDirectory)
+script_name = os.path.basename(__file__)
+
+import snowconvert_helpers
+from snowconvert_helpers import Export
+
+########################################################################################################
+# VARIABLE ASSIGNMENT
+########################################################################################################
+con = None 
+now = datetime.now()
+date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+
+TMSTMP=os.getenv('TMSTMP')
+ENVNAME=os.getenv('ENVNAME')
+FYQ=os.getenv('FYQ')
+
+
+# boolean - Python Exception status
+bPythonExceptionOccurred=False
+
+########################################################################################################
+# RUN
+########################################################################################################
+print('')
+print("Run date and time: " + date_time  )
+print('')
+
+########################################################################################################
+# Method to execute the extract SQL using Timestamp 
+########################################################################################################
+try:
+   snowconvert_helpers.configure_log()
+   con = snowconvert_helpers.log_on()   
+   snowconvert_helpers.execute_sql_statement(f"alter session set query_tag='{script_name}'",con,exit_on_error = True)
+   snowconvert_helpers.execute_sql_statement("""USE WAREHOUSE ${sf_xtr_warehouse}  """, con,exit_on_error = True)
+   
+   #**************************************
+   #   Extract Hospice Claims Data
+   #**************************************   
+   snowconvert_helpers.execute_sql_statement(f"""COPY INTO @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_PAC_STG/PAC_HOSP_CLMS_Y{FYQ}_{TMSTMP}.csv.gz
+                                                FROM (
+
+			 
+SELECT
+ DISTINCT       
+	 TO_CHAR(C.CLM_THRU_DT,'YYYYMM  ') AS CLAIM_YEAR_MONTH
+	,LPAD(TO_CHAR(C.CLM_UNIQ_ID,'FM9999999999999999'),16,' ') AS CLAIM_UID  
+	,RPAD(C.GEO_BENE_SSA_STATE_CD,2,' ')   
+	,LPAD(TO_CHAR(C.BENE_SK,'FM999999999999999999'),18,' ') AS BENE_SK 
+	,RPAD(CDN.CLM_NRLN_RIC_CD,1,' ')         AS CLM_NRLN_RIC_CD   
+	,RPAD(COALESCE(C.CLM_RIC_CD,' '),1,' ')  AS CLM_RIC_CD    
+	,RPAD(CI.CLM_TRANS_CD,1,' ')             AS CLM_TRANS_CD      
+	,LPAD(C.CLM_TYPE_CD,6,' ')               AS CLM_TYPE_CD      
+	,RPAD(C.CLM_BILL_FAC_TYPE_CD,1,' ')      AS CLM_BILL_FAC_TYPE_CD      
+	,RPAD(C.CLM_BILL_CLSFCTN_CD,1,' ')       AS CLM_BILL_CLSFCTN_CD      
+	,RPAD(C.CLM_BILL_FREQ_CD,1,' ')          AS CLM_BILL_FREQ_CD     
+	,RPAD(C.CLM_QUERY_CD,1,' ')              AS CLM_QUERY_CD     
+	,RPAD(C.CLM_DISP_CD,2,' ')               AS CLM_DISP_CD  
+	,RPAD(Substr(C.CLM_HIC_NUM,1,9),9,' ')  AS BENE_CLM_ACNT_NUM
+	,RPAD(C.BENE_CTGRY_EQTBL_BIC_CD,2,' ')  AS BENE_CTGRY_EQTBL_BIC_CD     
+,RPAD(Substr(C.CLM_HIC_NUM,10,2),2,' ') AS BENE_IDENT_CD 
+,RPAD(' ',1)    AS NCH_STATE_SGMT_CD 
+	,RPAD(C.GEO_BENE_SSA_CNTY_CD,3,' ')     AS GEO_BENE_SSA_CNTY_CD    
+	,TO_CHAR(C.CLM_FROM_DT,'YYYYMMDD')      AS CLM_FROM_DT   
+	,TO_CHAR(C.CLM_THRU_DT,'YYYYMMDD')      AS CLM_THRU_DT   
+	,TO_CHAR(CDS.CLM_SUBMSN_DT,'YYYYMMDD')  AS CLM_SUBMSN_DT  	
+	,TO_CHAR(CDS.CLM_CWF_ACRTN_DT,'YYYYMMDD')     AS CLM_CWF_ACRTN_DT  
+	,CASE WHEN CDN.CLM_MDCR_ACRTN_NUM IS NULL THEN '   ' ELSE
+    TO_CHAR(CDN.CLM_MDCR_ACRTN_NUM,'FM000')  END    AS CLM_MDCR_ACRTN_NUM 
+	,TO_CHAR(CDS.CLM_SCHLD_PMT_DT,'YYYYMMDD')     AS CLM_SCHLD_PMT_DT   
+	,TO_CHAR(CDS.CLM_NCH_WKLY_PROC_DT,'YYYYMMDD') AS CLM_NCH_WKLY_PROC_DT
+    ,RPAD(C.CLM_CNTRCTR_NUM,3,' ')      AS CLM_CNTRCTR_NUM 
+	,RPAD(CDN.CLM_MDCR_BATCH_NUM,4,' ') AS CLM_MDCR_BATCH_NUM    
+	,RPAD(bene.GEO_ZIP5_CD,5,' ')       AS GEO_ZIP5_CD     
+	,RPAD(bene.GEO_ZIP4_CD,4,' ')       AS GEO_ZIP4_CD    
+	,RPAD(C.BENE_SEX_CD,1,' ')          AS BENE_SEX_CD  
+	,RPAD(CDN.BENE_RACE_CD,2,' ')       AS BENE_RACE_CD   
+    ,TO_CHAR(C.CLM_PTNT_BIRTH_DT,'YYYYMMDD')    AS CLM_PTNT_BIRTH_DT
+	,RPAD(CDN.CLM_CWF_BENE_MDCR_STUS_CD,2,' ')  AS CLM_CWF_BENE_MDCR_STUS_CD    
+	,RPAD(CDN.CLM_BENE_CWF_LOC_CD,1,' ')        AS CLM_BENE_CWF_LOC_CD   
+	,RPAD(CPM.CLM_PRNCPL_DGNS_CD,7,' ')         AS CLM_PRNCPL_DGNS_CD      
+	,RPAD(CI.CLM_MDCR_NPMT_RSN_CD,2,' ')        AS CLM_MDCR_NPMT_RSN_CD   
+	,RPAD(CDN.CLM_EXCPTD_NEXCPTD_CD,1,' ')      AS CLM_EXCPTD_NEXCPTD_CD 
+	,LPAD(TO_CHAR(C.CLM_PMT_AMT,'FM9999999999990.00'),16,' ') AS CLM_PMT_AMT  
+	,LPAD(TO_CHAR(CI.CLM_MDCR_INSTNL_PRMRY_PYR_AMT,'FM999999990.00'),12,' ') AS CLM_MDCR_INSTNL_PRMRY_PYR_AMT 
+	,RPAD(C.CLM_NCH_PRMRY_PYR_CD,1,' ')       AS CLM_NCH_PRMRY_PYR_CD    
+	,RPAD(C.CLM_CNTL_NUM,40,' ')              AS CLM_CNTL_NUM    
+	,RPAD(C.CLM_ORIG_CNTL_NUM,40,' ')         AS CLM_ORIG_CNTL_NUM    
+	,RPAD(CI.CLM_RQST_CNCL_RSN_CD,1,' ')      AS CLM_RQST_CNCL_RSN_CD    
+	,RPAD(CI.CLM_FI_ACTN_CD,1,' ')            AS CLM_FI_ACTN_CD     
+	,TO_CHAR(CDS.CLM_CMS_PROC_DT,'YYYYMMDD')  AS CLM_CMS_PROC_DT   
+	,RPAD(C.CLM_BLG_PRVDR_OSCAR_NUM,20,' ')   AS CLM_BLG_PRVDR_OSCAR_NUM    
+	,RPAD(C.GEO_BLG_SSA_STATE_CD,2,' ')       AS GEO_BLG_SSA_STATE_CD   
+	,RPAD(C.PRVDR_BLG_PRVDR_NPI_NUM,10,' ')   AS PRVDR_BLG_PRVDR_NPI_NUM    
+	,RPAD(' ',13) AS  MDCD_PRVDR_NUM
+,RPAD(CI.CLM_MDCD_INFO_CD,4,' ')              AS CLM_MDCD_INFO_CD     
+	,RPAD(CI.CLM_MDCR_INSTNL_MCO_PD_SW,1,' ')     AS CLM_MDCR_INSTNL_MCO_PD_SW   
+	,RPAD(CDN.CLM_PTNT_TRTMT_AUTHRZTN_NUM,18,' ') AS CLM_PTNT_TRTMT_AUTHRZTN_NUM  
+	,RPAD(CDN.CLM_PTNT_CNTL_NUM,20,' ')           AS CLM_PTNT_CNTL_NUM   
+,RPAD(CDN.CLM_PTNT_MDCL_REC_NUM,80,' ')       AS CLM_PTNT_MDCL_REC_NUM
+	,RPAD(CDN.CLM_PRO_CNTL_NUM,14,' ')            AS CLM_PRO_CNTL_NUM    
+	,TO_CHAR(CDS.CLM_PRO_PROC_DT,'YYYYMMDD')      AS CLM_PRO_PROC_DT   
+	,RPAD(CI.BENE_PTNT_STUS_CD,2,' ')             AS BENE_PTNT_STUS_CD    
+	,RPAD(CI.CLM_PPS_IND_CD,1,' ')                AS CLM_PPS_IND_CD  
+,LPAD(TO_CHAR(CI.CLM_MDCR_INSTNL_TOT_CHRG_AMT,'FM999999990.00'),12,' ') AS CLM_MDCR_INSTNL_TOT_CHRG_AMT 
+	,TO_CHAR(CDS.CLM_ACTV_CARE_FROM_DT,'YYYYMMDD') AS CLM_ACTV_CARE_FROM_DT   								
+	,TO_CHAR(CDS.CLM_MDCR_EXHSTD_DT,'YYYYMMDD')          AS  CLM_MDCR_EXHSTD_DT															 
+,LPAD(TO_CHAR(CI.CLM_INSTNL_CVRD_DAY_CNT,'FM99999999990.0000'),16)      AS CLM_INSTNL_CVRD_DAY_CNT   
+    ,TO_CHAR(COALESCE(CI.CLM_MDCR_IP_CR_DAY_CNT,0),'FM000')          AS  CLM_MDCR_IP_CR_DAY_CNT        
+							 
+,RPAD(C.CLM_FINL_ACTN_IND,1,' ')                     AS  CLM_FINL_ACTN_IND     
+	,RPAD(CI.CLM_PRCR_RTRN_CD,2,' ')                     AS  CLM_PRCR_RTRN_CD    
+	,RPAD(CI.CLM_MDCR_INSTNL_BUSNS_SGMT_CD,4,' ')        AS  CLM_MDCR_INSTNL_BUSNS_SGMT_CD       
+								
+,CASE WHEN CLM_DGNS_TOT_OCRNC_CNT IS NULL THEN '  ' ELSE
+    TO_CHAR(CPM.CLM_DGNS_TOT_OCRNC_CNT,'FM00')   END       AS CLM_DGNS_TOT_OCRNC_CNT    
+	,CASE WHEN CPM.CLM_PRCDR_TOT_OCRNC_CNT IS NULL THEN '  ' ELSE
+    TO_CHAR(CPM.CLM_PRCDR_TOT_OCRNC_CNT,'FM00')   END       AS CLM_PRCDR_TOT_OCRNC_CNT    
+	,CASE WHEN CRCS.CLM_RLT_COND_SGNTR_MBR_CNT IS NULL THEN '     ' ELSE
+    TO_CHAR(CRCS.CLM_RLT_COND_SGNTR_MBR_CNT,'FM00000')  END AS CLM_RLT_COND_SGNTR_MBR_CNT    
+	,CASE WHEN CROS.CLM_RLT_OCRNC_SGNTR_MBR_CNT IS NULL THEN '     ' ELSE
+    TO_CHAR(CROS.CLM_RLT_OCRNC_SGNTR_MBR_CNT,'FM00000') END AS CLM_RLT_OCRNC_SGNTR_MBR_CNT    
+	,CASE WHEN COSG.CLM_OCRNC_SGNTR_MBR_CNT IS NULL THEN '     ' ELSE
+    TO_CHAR(COSG.CLM_OCRNC_SGNTR_MBR_CNT,'FM00000') END AS CLM_OCRNC_SGNTR_MBR_CNT								   
+,RPAD(C.CLM_ATNDG_PRVDR_UPIN_NUM,6,' ')              AS CLM_ATNDG_PRVDR_UPIN_NUM
+    ,RPAD(C.CLM_ATNDG_PRVDR_NPI_NUM,10,' ')            AS CLM_ATNDG_PRVDR_NPI_NUM 
+    ,RPAD(C.CLM_OPRTG_PRVDR_UPIN_NUM,6,' ')            AS CLM_OPRTG_PRVDR_UPIN_NUM
+,RPAD(C.CLM_OPRTG_PRVDR_NPI_NUM,10,' ')            AS CLM_OPRTG_PRVDR_NPI_NUM 	
+,RPAD(C.CLM_OTHR_PRVDR_UPIN_NUM,6,' ')            AS CLM_OTHR_PRVDR_UPIN_NUM
+,RPAD(C.CLM_OTHR_PRVDR_NPI_NUM,10,' ')            AS CLM_OTHR_PRVDR_NPI_NUM 	
+,RPAD(C.CLM_RAC_ADJSTMT_IND_CD,1,' ')            AS CLM_RAC_ADJSTMT_IND_CD	
+,RPAD(CI.CLM_INSTNL_WC_IND,1,' ')            AS CLM_INSTNL_WC_IND
+,RPAD(TO_CHAR(C.CLM_BLG_PRVDR_ZIP5_CD),5) AS ZIP5_CD
+
+,RPAD(C.CLM_DCMTN_CD,2,' ')            AS CLM_DCMTN_CD
+,RPAD(C.CLM_ATNDG_FED_PRVDR_SPCLTY_CD,2,' ')            AS CLM_ATNDG_FED_PRVDR_SPCLTY_CD
+,RPAD(C.CLM_OPRTG_FED_PRVDR_SPCLTY_CD,2,' ')            AS CLM_OPRTG_FED_PRVDR_SPCLTY_CD
+										 
+							 
+,RPAD(C.CLM_OTHR_FED_PRVDR_SPCLTY_CD,2,' ')            AS CLM_OTHR_FED_PRVDR_SPCLTY_CD  
+ ,RPAD(CDN.CLM_CARE_IMPRVMT_MODEL_1_CD,2,' ')            AS CLM_CARE_IMPRVMT_MODEL_1_CD
+ ,RPAD(CDN.CLM_CARE_IMPRVMT_MODEL_2_CD,2,' ')            AS CLM_CARE_IMPRVMT_MODEL_2_CD
+ ,RPAD(CDN.CLM_CARE_IMPRVMT_MODEL_3_CD,2,' ')            AS CLM_CARE_IMPRVMT_MODEL_3_CD
+ ,RPAD(CDN.CLM_CARE_IMPRVMT_MODEL_4_CD,2,' ')            AS CLM_CARE_IMPRVMT_MODEL_4_CD
+,RPAD(C.CLM_RNDRG_PRVDR_UPIN_NUM,6,' ')            AS CLM_RNDRG_PRVDR_UPIN_NUM
+,RPAD(C.CLM_RNDRG_PRVDR_NPI_NUM,10,' ')            AS CLM_RNDRG_PRVDR_NPI_NUM 	
+,RPAD(C.CLM_RNDRG_FED_PRVDR_SPCLTY_CD,2,' ')            AS CLM_RNDRG_FED_PRVDR_SPCLTY_CD
+,RPAD(CDN.CLM_PTNT_RLTNSHP_CD,2,' ')            AS CLM_PTNT_RLTNSHP_CD								 
+,RPAD(CPM.CLM_DGNS_PRCDR_ICD_IND,1,' ')            AS CLM_DGNS_PRCDR_ICD_IND															   
+,RPAD(C.CLM_RFRG_PRVDR_UPIN_NUM,6,' ') AS   CLM_RFRG_PRVDR_UPIN_NUM
+,RPAD(C.CLM_RFRG_PRVDR_NPI_NUM,10,' ') AS   CLM_RFRG_PRVDR_NPI_NUM
+,RPAD(C.CLM_RFRG_FED_PRVDR_SPCLTY_CD,2,' ') AS CLM_RFRG_FED_PRVDR_SPCLTY_CD
+,RPAD(C.CLM_FPS_MODEL_NUM,2,' ')            AS CLM_FPS_MODEL_NUM
+,RPAD(CDN.CLM_FPS_RSN_CD,3,' ')            AS CLM_FPS_RSN_CD
+,RPAD(CDN.CLM_FPS_RMRK_CD,5,' ')            AS CLM_FPS_RMRK_CD          
+,RPAD(C.CLM_FPS_MSN_1_CD,5,' ')            AS CLM_FPS_MSN_1_CD
+,RPAD(C.CLM_FPS_MSN_2_CD,5,' ')            AS CLM_FPS_MSN_2_CD
+,RPAD(CDN.CLM_MASS_ADJSTMT_TYPE_CD,1,' ')            AS CLM_MASS_ADJSTMT_TYPE_CD   
+,RPAD(COALESCE(C.CLM_SRVC_PRVDR_NPI_NUM,' '),10) AS  CLM_SRVC_PRVDR_NPI_NUM																	   
+,RPAD(CDN.CLM_RSDL_PYMT_IND_CD,1,' ')            AS CLM_RSDL_PYMT_IND_CD
+,REPEAT(' ',1)                AS  CLM_NG_ACO_1_CD
+,REPEAT(' ',1)                AS  CLM_NG_ACO_2_CD
+,REPEAT(' ',1)                AS  CLM_NG_ACO_3_CD
+,REPEAT(' ',1)                AS  CLM_NG_ACO_4_CD
+,REPEAT(' ',1)                AS  CLM_NG_ACO_5_CD
+,RPAD(BENE.BENE_RP_SW,1,' ')            AS BENE_RP_SW
+,RPAD(COALESCE(CDN.CLM_ACO_ID_NUM,' '),10)            AS CLM_ACO_ID_NUM
+,RPAD(C.CLM_BENE_MBI_ID,11,' ')            AS CLM_BENE_MBI_ID
+,RPAD(CDN.CLM_SBMTD_BENE_ID_TYPE_CD,1,' ') CLM_SBMTD_BENE_ID_TYPE_CD 
+FROM      
+IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM C      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_DIM_BENE_{ENVNAME}.BENE BENE      
+ON BENE.BENE_SK = C.BENE_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DCMTN CDN       
+ON C.GEO_BENE_SK=CDN.GEO_BENE_SK      
+AND C.CLM_DT_SGNTR_SK=CDN.CLM_DT_SGNTR_SK      
+AND C.CLM_TYPE_CD = CDN.CLM_TYPE_CD      
+AND C.CLM_NUM_SK = CDN.CLM_NUM_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE_DCMTN CLDN       
+ON C.GEO_BENE_SK=CLDN.GEO_BENE_SK      
+AND C.CLM_DT_SGNTR_SK=CLDN.CLM_DT_SGNTR_SK      
+AND C.CLM_TYPE_CD = CLDN.CLM_TYPE_CD      
+AND C.CLM_NUM_SK = CLDN.CLM_NUM_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_INSTNL CI      
+ON C.GEO_BENE_SK=CI.GEO_BENE_SK      
+AND C.CLM_DT_SGNTR_SK=CI.CLM_DT_SGNTR_SK      
+AND C.CLM_TYPE_CD = CI.CLM_TYPE_CD      
+AND C.CLM_NUM_SK = CI.CLM_NUM_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE_VMS CLV      
+ON C.GEO_BENE_SK=CLV.GEO_BENE_SK      
+AND C.CLM_DT_SGNTR_SK=CLV.CLM_DT_SGNTR_SK      
+AND C.CLM_TYPE_CD = CLV.CLM_TYPE_CD      
+AND C.CLM_NUM_SK = CLV.CLM_NUM_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DT_SGNTR CDS      
+ON CDS.CLM_DT_SGNTR_SK = C.CLM_DT_SGNTR_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_PROD_MTRLZD CPM      
+ON C.GEO_BENE_SK=CPM.GEO_BENE_SK      
+AND C.CLM_DT_SGNTR_SK=CPM.CLM_DT_SGNTR_SK      
+AND C.CLM_TYPE_CD = CPM.CLM_TYPE_CD      
+AND C.CLM_NUM_SK = CPM.CLM_NUM_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_RLT_COND_SGNTR CRCS      
+ON CRCS.CLM_RLT_COND_SGNTR_SK = C.CLM_RLT_COND_SGNTR_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_RLT_OCRNC_SGNTR CROS      
+ON CROS.CLM_RLT_OCRNC_SGNTR_SK = C.CLM_RLT_OCRNC_SGNTR_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_OCRNC_SGNTR COSG      
+ON COSG.CLM_OCRNC_SGNTR_SK = C.CLM_OCRNC_SGNTR_SK      
+LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_PSF PSF      
+ON PSF.PRVDR_OSCAR_NUM = C.CLM_BLG_PRVDR_OSCAR_NUM
+WHERE     
+C.CLM_TYPE_CD=50    
+AND (C.CLM_FROM_DT between
+            dateadd('month',-10, date_trunc('month',CURRENT_DATE()))
+             and 
+LAST_DAY(ADD_MONTHS(CURRENT_DATE,-8)))
+AND (C.CLM_THRU_DT between
+            dateadd('month',-10, date_trunc('month',CURRENT_DATE()))
+             and 
+LAST_DAY(ADD_MONTHS(CURRENT_DATE,-8)))      
+AND C.CLM_PMT_AMT > 0     
+						 
+AND C.CLM_FINL_ACTN_IND='Y'    
+AND C.CLM_BILL_FAC_TYPE_CD='8'     
+AND C.CLM_BILL_CLSFCTN_CD IN('1','2')  
+ORDER BY CLAIM_YEAR_MONTH,CLAIM_UID,CLM_FROM_DT
+                        ) 
+                        FILE_FORMAT = (TYPE=CSV field_delimiter=none ESCAPE_UNENCLOSED_FIELD=NONE  FIELD_OPTIONALLY_ENCLOSED_BY=none )
+                        SINGLE=TRUE  max_file_size=5368709120  """, con, exit_on_error=True)
+
+
+   
+   #**************************************
+   # End Application
+   #**************************************    
+   snowconvert_helpers.quit_application()
+   
+except Exception as e:
+   print(e)
+   
+   # Let shell script know that python code failed.
+   bPythonExceptionOccurred=True   
+   
+finally:
+   if con is not None:
+      con.close()
+
+   # Let shell script know that python code failed.      
+   if bPythonExceptionOccurred == True:
+      sys.exit(12) 
+   else:   
+      snowconvert_helpers.quit_application()

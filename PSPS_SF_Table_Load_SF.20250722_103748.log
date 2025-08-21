@@ -1,0 +1,170 @@
+INFO:snowflake.connector.connection:Snowflake Connector for Python Version: 3.7.0, Python Version: 3.11.13, Platform: Linux-4.18.0-553.62.1.el8_10.x86_64-x86_64-with-glibc2.28
+DEBUG:snowflake.connector.connection:connect
+DEBUG:snowflake.connector.connection:__config
+INFO:snowflake.connector.connection:This connection is in OCSP Fail Open Mode. TLS Certificates would be checked for validity and revocation status. Any other Certificate Revocation related exceptions or OCSP Responder failures would be disregarded in favor of connectivity.
+DEBUG:snowflake.connector.converter:use_numpy: False
+DEBUG:snowflake.connector.connection:REST API object was created: cms-idrnp.privatelink.snowflakecomputing.com:443
+DEBUG:snowflake.connector.connection:OCSP Cache Server is updated: http://ocsp.cms-idrnp.privatelink.snowflakecomputing.com/ocsp_response_cache.json
+DEBUG:snowflake.connector.auth._auth:authenticate
+DEBUG:snowflake.connector.auth._auth:assertion content: *********
+DEBUG:snowflake.connector.auth._auth:account=cms-idrnp, user=idrc_tst_bia_xtr_etl, database=BIA_TST, schema=None, warehouse=BIA_NP_ETL_WKLD, role=None, request_id=9e5f4e34-5293-47e7-b32a-9029538039f8
+DEBUG:snowflake.connector.auth._auth:body['data']: {'CLIENT_APP_ID': 'PythonConnector', 'CLIENT_APP_VERSION': '3.7.0', 'SVN_REVISION': None, 'ACCOUNT_NAME': 'cms-idrnp', 'LOGIN_NAME': 'idrc_tst_bia_xtr_etl', 'CLIENT_ENVIRONMENT': {'APPLICATION': 'PythonConnector', 'OS': 'Linux', 'OS_VERSION': 'Linux-4.18.0-553.62.1.el8_10.x86_64-x86_64-with-glibc2.28', 'PYTHON_VERSION': '3.11.13', 'PYTHON_RUNTIME': 'CPython', 'PYTHON_COMPILER': 'GCC 8.5.0 20210514 (Red Hat 8.5.0-27)', 'OCSP_MODE': 'FAIL_OPEN', 'TRACING': 10, 'LOGIN_TIMEOUT': '30', 'NETWORK_TIMEOUT': None, 'SOCKET_TIMEOUT': None}, 'SESSION_PARAMETERS': {'QUERY_TAG': 'PSPS_SF_Table_Load.py', 'CLIENT_PREFETCH_THREADS': 4}}
+DEBUG:snowflake.connector.vendored.urllib3.util.retry:Converted retries value: 1 -> Retry(total=1, connect=None, read=None, redirect=None, status=None)
+DEBUG:snowflake.connector.vendored.urllib3.util.retry:Converted retries value: 1 -> Retry(total=1, connect=None, read=None, redirect=None, status=None)
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: N/A ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 2eb45f15-d419-466c-bcb5-aaa267dc1230
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:Starting new HTTPS connection (1): cms-idrnp.privatelink.snowflakecomputing.com:443
+DEBUG:snowflake.connector.ssl_wrap_socket:OCSP Mode: FAIL_OPEN, OCSP response cache file name: None
+DEBUG:snowflake.connector.ocsp_snowflake:cache directory: /home/idrcxtr/.cache/snowflake
+DEBUG:snowflake.connector.ocsp_snowflake:ocsp_response_cache_uri: file:///home/idrcxtr/.cache/snowflake/ocsp_response_cache.json
+DEBUG:snowflake.connector.ocsp_snowflake:OCSP_VALIDATION_CACHE size: 395
+DEBUG:snowflake.connector.ocsp_snowflake:OCSP response cache server is enabled: http://ocsp.cms-idrnp.privatelink.snowflakecomputing.com/ocsp_response_cache.json
+DEBUG:snowflake.connector.ocsp_snowflake:OCSP dynamic cache server RETRY URL: http://ocsp.cms-idrnp.privatelink.snowflakecomputing.com/retry/{0}/{1}
+DEBUG:snowflake.connector.ocsp_snowflake:validating certificate: cms-idrnp.privatelink.snowflakecomputing.com
+DEBUG:snowflake.connector.ocsp_asn1crypto:# of certificates: 4
+DEBUG:snowflake.connector.ocsp_asn1crypto:subject: OrderedDict([('common_name', '*.us-east-1-gov.privatelink.snowflakecomputing.com')]), issuer: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon RSA 2048 M02')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:subject: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon RSA 2048 M02')]), issuer: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon Root CA 1')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:subject: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon Root CA 1')]), issuer: OrderedDict([('country_name', 'US'), ('state_or_province_name', 'Arizona'), ('locality_name', 'Scottsdale'), ('organization_name', 'Starfield Technologies, Inc.'), ('common_name', 'Starfield Services Root Certificate Authority - G2')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:subject: OrderedDict([('country_name', 'US'), ('state_or_province_name', 'Arizona'), ('locality_name', 'Scottsdale'), ('organization_name', 'Starfield Technologies, Inc.'), ('common_name', 'Starfield Services Root Certificate Authority - G2')]), issuer: OrderedDict([('country_name', 'US'), ('organization_name', 'Starfield Technologies, Inc.'), ('organizational_unit_name', 'Starfield Class 2 Certification Authority')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:reading certificate bundle: /usr/local/lib/python3.11/site-packages/certifi/cacert.pem
+DEBUG:snowflake.connector.ocsp_asn1crypto:not found issuer_der: OrderedDict([('country_name', 'US'), ('organization_name', 'Starfield Technologies, Inc.'), ('organizational_unit_name', 'Starfield Class 2 Certification Authority')])
+DEBUG:snowflake.connector.ocsp_snowflake:hit cache for subject: OrderedDict([('common_name', '*.us-east-1-gov.privatelink.snowflakecomputing.com')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:Verifying the attached certificate is signed by the issuer. Valid Not After: 2026-07-22 00:00:00+00:00
+DEBUG:snowflake.connector.ocsp_snowflake:hit cache for subject: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon RSA 2048 M02')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:Verifying the attached certificate is signed by the issuer. Valid Not After: 2026-07-22 00:00:00+00:00
+DEBUG:snowflake.connector.ocsp_snowflake:hit cache for subject: OrderedDict([('country_name', 'US'), ('organization_name', 'Amazon'), ('common_name', 'Amazon Root CA 1')])
+DEBUG:snowflake.connector.ocsp_asn1crypto:Verifying the attached certificate is signed by the issuer. Valid Not After: 2026-04-02 12:00:00+00:00
+DEBUG:snowflake.connector.ocsp_snowflake:hit cache for subject: OrderedDict([('country_name', 'US'), ('state_or_province_name', 'Arizona'), ('locality_name', 'Scottsdale'), ('organization_name', 'Starfield Technologies, Inc.'), ('common_name', 'Starfield Services Root Certificate Authority - G2')])
+DEBUG:snowflake.connector.ocsp_snowflake:ok
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /session/v1/login-request?request_id=9e5f4e34-5293-47e7-b32a-9029538039f8&databaseName=BIA_TST&warehouse=BIA_NP_ETL_WKLD&request_guid=2eb45f15-d419-466c-bcb5-aaa267dc1230 HTTP/1.1" 200 5501
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = None, after post request
+DEBUG:snowflake.connector.auth._auth:completed authentication
+DEBUG:snowflake.connector.auth._auth:token = ******
+DEBUG:snowflake.connector.auth._auth:master_token = ******
+DEBUG:snowflake.connector.auth._auth:id_token = NULL
+DEBUG:snowflake.connector.auth._auth:mfa_token = NULL
+DEBUG:snowflake.connector.connection:cursor
+DEBUG:snowflake.connector.cursor:executing SQL/command
+DEBUG:snowflake.connector.cursor:binding: [alter session set query_tag='PSPS_SF_Table_Load.py'] with input=[None], processed=[{}]
+INFO:snowflake.connector.cursor:query: [alter session set query_tag='PSPS_SF_Table_Load.py']
+DEBUG:snowflake.connector.connection:sequence counter: 1
+DEBUG:snowflake.connector.cursor:Request id: fcc9368c-799a-45eb-9549-ff467eb1a025
+DEBUG:snowflake.connector.cursor:running query [alter session set query_tag='PSPS_SF_Table_Load.py']
+DEBUG:snowflake.connector.cursor:is_file_transfer: True
+DEBUG:snowflake.connector.connection:_cmd_query
+DEBUG:snowflake.connector._query_context_cache:serialize_to_dict() called
+DEBUG:snowflake.connector.connection:sql=[alter session set query_tag='PSPS_SF_Table_Load.py'], sequence_id=[1], is_file_transfer=[False]
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: N/A ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 1468dfd6-1f0d-48ea-b947-ab0c2523a4ae
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /queries/v1/query-request?requestId=fcc9368c-799a-45eb-9549-ff467eb1a025&request_guid=1468dfd6-1f0d-48ea-b947-ab0c2523a4ae HTTP/1.1" 200 None
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = None, after post request
+DEBUG:snowflake.connector.network:Query id: 01bddc4d-0000-c7cf-0000-042114da7552
+DEBUG:snowflake.connector._query_context_cache:deserialize_json_dict() called: data from server: {'entries': [{'id': 0, 'timestamp': 1753195068607485, 'priority': 0, 'context': 'CL6+DA=='}]}
+DEBUG:snowflake.connector._query_context_cache:deserialize {'id': 0, 'timestamp': 1753195068607485, 'priority': 0, 'context': 'CL6+DA=='}
+DEBUG:snowflake.connector._query_context_cache:sync_priority_map called priority_map size = 0, new_priority_map size = 1
+DEBUG:snowflake.connector._query_context_cache:trim_cache() called. treeSet size is 1 and cache capacity is 5
+DEBUG:snowflake.connector._query_context_cache:trim_cache() returns. treeSet size is 1 and cache capacity is 5
+DEBUG:snowflake.connector._query_context_cache:deserialize_json_dict() returns
+DEBUG:snowflake.connector._query_context_cache:Cache Entry: (0, 1753195068607485, 0)
+DEBUG:snowflake.connector.cursor:sfqid: 01bddc4d-0000-c7cf-0000-042114da7552
+INFO:snowflake.connector.cursor:query execution done
+DEBUG:snowflake.connector.cursor:SUCCESS
+DEBUG:snowflake.connector.cursor:PUT OR GET: False
+DEBUG:snowflake.connector.cursor:Query result format: json
+DEBUG:snowflake.connector.result_batch:parsing for result batch id: 1
+INFO:snowflake.connector.cursor:Number of results in first chunk: 1
+DEBUG:snowflake.connector.result_set:beginning to schedule result batch downloads
+DEBUG:snowflake.connector.connection:cursor
+DEBUG:snowflake.connector.cursor:executing SQL/command
+DEBUG:snowflake.connector.cursor:binding: [USE WAREHOUSE BIA_NP_XTR_WKLD] with input=[None], processed=[{}]
+INFO:snowflake.connector.cursor:query: [USE WAREHOUSE BIA_NP_XTR_WKLD]
+DEBUG:snowflake.connector.connection:sequence counter: 2
+DEBUG:snowflake.connector.cursor:Request id: 61d0ce82-97d0-4d10-aaa5-af0d1c7c8490
+DEBUG:snowflake.connector.cursor:running query [USE WAREHOUSE BIA_NP_XTR_WKLD]
+DEBUG:snowflake.connector.cursor:is_file_transfer: True
+DEBUG:snowflake.connector.connection:_cmd_query
+DEBUG:snowflake.connector._query_context_cache:serialize_to_dict() called
+DEBUG:snowflake.connector._query_context_cache:Cache Entry: (0, 1753195068607485, 0)
+DEBUG:snowflake.connector._query_context_cache:serialize_to_dict(): data to send to server {'entries': [{'id': 0, 'timestamp': 1753195068607485, 'priority': 0, 'context': {'base64Data': 'CL6+DA=='}}]}
+DEBUG:snowflake.connector.connection:sql=[USE WAREHOUSE BIA_NP_XTR_WKLD], sequence_id=[2], is_file_transfer=[False]
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: N/A ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 660dfc34-bea9-4dfc-a737-2f8eb78cd6fb
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /queries/v1/query-request?requestId=61d0ce82-97d0-4d10-aaa5-af0d1c7c8490&request_guid=660dfc34-bea9-4dfc-a737-2f8eb78cd6fb HTTP/1.1" 200 None
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = None, after post request
+DEBUG:snowflake.connector.network:Query id: 01bddc4d-0000-c7cf-0000-042114da7556
+DEBUG:snowflake.connector._query_context_cache:deserialize_json_dict() called: data from server: {'entries': [{'id': 0, 'timestamp': 1753195068667595, 'priority': 0, 'context': 'CL6+DA=='}]}
+DEBUG:snowflake.connector._query_context_cache:Cache Entry: (0, 1753195068607485, 0)
+DEBUG:snowflake.connector._query_context_cache:deserialize {'id': 0, 'timestamp': 1753195068667595, 'priority': 0, 'context': 'CL6+DA=='}
+DEBUG:snowflake.connector._query_context_cache:sync_priority_map called priority_map size = 0, new_priority_map size = 1
+DEBUG:snowflake.connector._query_context_cache:trim_cache() called. treeSet size is 1 and cache capacity is 5
+DEBUG:snowflake.connector._query_context_cache:trim_cache() returns. treeSet size is 1 and cache capacity is 5
+DEBUG:snowflake.connector._query_context_cache:deserialize_json_dict() returns
+DEBUG:snowflake.connector._query_context_cache:Cache Entry: (0, 1753195068667595, 0)
+DEBUG:snowflake.connector.cursor:sfqid: 01bddc4d-0000-c7cf-0000-042114da7556
+INFO:snowflake.connector.cursor:query execution done
+DEBUG:snowflake.connector.cursor:SUCCESS
+DEBUG:snowflake.connector.cursor:PUT OR GET: False
+DEBUG:snowflake.connector.cursor:Query result format: json
+DEBUG:snowflake.connector.result_batch:parsing for result batch id: 1
+INFO:snowflake.connector.cursor:Number of results in first chunk: 1
+DEBUG:snowflake.connector.result_set:beginning to schedule result batch downloads
+DEBUG:snowflake.connector.connection:cursor
+DEBUG:snowflake.connector.cursor:executing SQL/command
+DEBUG:snowflake.connector.cursor:binding: [DELETE FROM BIA_TST.CMS_EXTNL_XTR_TST.PSPS_EXT_DATA WHERE EXT_DT_YYYY = '2023' A...] with input=[None], processed=[{}]
+INFO:snowflake.connector.cursor:query: [DELETE FROM BIA_TST.CMS_EXTNL_XTR_TST.PSPS_EXT_DATA WHERE EXT_DT_YYYY = '2023' A...]
+DEBUG:snowflake.connector.connection:sequence counter: 3
+DEBUG:snowflake.connector.cursor:Request id: aedcb0a6-2302-4e6f-8e7d-1b8c967bf828
+DEBUG:snowflake.connector.cursor:running query [DELETE FROM BIA_TST.CMS_EXTNL_XTR_TST.PSPS_EXT_DATA WHERE EXT_DT_YYYY = '2023' A...]
+DEBUG:snowflake.connector.cursor:is_file_transfer: True
+DEBUG:snowflake.connector.connection:_cmd_query
+DEBUG:snowflake.connector._query_context_cache:serialize_to_dict() called
+DEBUG:snowflake.connector._query_context_cache:Cache Entry: (0, 1753195068667595, 0)
+DEBUG:snowflake.connector._query_context_cache:serialize_to_dict(): data to send to server {'entries': [{'id': 0, 'timestamp': 1753195068667595, 'priority': 0, 'context': {'base64Data': 'CL6+DA=='}}]}
+DEBUG:snowflake.connector.connection:sql=[DELETE FROM BIA_TST.CMS_EXTNL_XTR_TST.PSPS_EXT_DATA WHERE EXT_DT_YYYY = '2023' A...], sequence_id=[3], is_file_transfer=[False]
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: N/A ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 9505c434-33f7-4abd-ab8a-d3e09cfb007c
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /queries/v1/query-request?requestId=aedcb0a6-2302-4e6f-8e7d-1b8c967bf828&request_guid=9505c434-33f7-4abd-ab8a-d3e09cfb007c HTTP/1.1" 200 None
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = 002003, after post request
+DEBUG:snowflake.connector.network:Query id: 01bddc4d-0000-c7cf-0000-042114da755a
+DEBUG:snowflake.connector.cursor:sfqid: 01bddc4d-0000-c7cf-0000-042114da755a
+INFO:snowflake.connector.cursor:query execution done
+DEBUG:snowflake.connector.cursor:{'data': {'internalError': False, 'unredactedFromSecureObject': False, 'errorCode': '002003', 'age': 0, 'sqlState': '02000', 'queryId': '01bddc4d-0000-c7cf-0000-042114da755a', 'line': 1, 'pos': 12, 'type': 'COMPILATION'}, 'code': '002003', 'message': "SQL compilation error:\nSchema 'BIA_TST.CMS_EXTNL_XTR_TST' does not exist or not authorized.", 'success': False, 'headers': None}
+INFO:snowflake.connector.connection:closed
+DEBUG:snowflake.connector.telemetry:Closing telemetry client.
+DEBUG:snowflake.connector.telemetry:Sending 1 logs to telemetry. Data is {'logs': [{'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'type': 'client_imported_packages', 'value': "{'os', 'ctypes', 'unicodedata', 'atexit', 'mmap', 'contextvars', 'hmac', 'string', 'configparser', 'codecs', 'tokenize', 'urllib', 'zoneinfo', 'operator', 'weakref', 'signal', 'fcntl', 'math', 'struct', 'binascii', 'grp', 'idna', 'ipaddress', 'cmath', 'OpenSSL', 'opcode', 'datetime', 'html', 'socket', 'lzma', 'bz2', 'linecache', 'logging', 're', 'numpy', 'csv', 'builtins', 'pprint', 'snowflake', 'shutil', 'pathlib', 'charset_normalizer', 'time', 'packaging', 'pytz', 'calendar', 'ntpath', 'bisect', 'cryptography', 'posixpath', 'threading', 'stringprep', 'pandas', 'filelock', 'contextlib', 'sendEmail', 'subprocess', 'certifi', 'webbrowser', 'snowconvert_helpers', 'reprlib', 'copyreg', 'email', 'posix', 'select', 'stat', 'requests', 'sortedcontainers', 'token', 'encodings', 'typing', 'tarfile', 'fractions', 'cython_runtime', 'errno', 'keyword', 'gc', 'base64', 'http', 'zipimport', 'queue', 'numbers', 'sysconfig', 'locale', 'json', 'typing_extensions', 'uuid', 'textwrap', 'inspect', 'itertools', 'functools', 'dataclasses', 'collections', 'six', 'smtplib', 'mimetypes', 'fnmatch', 'marshal', 'array', 'selectors', 'abc', 'zipfile', 'platformdirs', 'dateutil', 'dis', 'heapq', 'random', 'difflib', 'jwt', 'tomlkit', 'importlib', 'warnings', 'zlib', 'types', 'pickle', 'copy', 'hashlib', 'decimal', 'genericpath', 'urllib3', 'gzip', 'enum', 'concurrent', 'ast', 'tempfile', 'io', 'site', 'traceback', 'ssl', 'pwd', 'asn1crypto', 'shlex', 'platform', 'quopri', 'secrets', 'sys'}"}, 'timestamp': '1753195068556'}, {'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'type': 'client_time_consume_first_result', 'query_id': '01bddc4d-0000-c7cf-0000-042114da7552', 'value': 2}, 'timestamp': '1753195068622'}, {'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'type': 'client_time_consume_last_result', 'query_id': '01bddc4d-0000-c7cf-0000-042114da7552', 'value': 1}, 'timestamp': '1753195068623'}, {'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'type': 'client_time_consume_first_result', 'query_id': '01bddc4d-0000-c7cf-0000-042114da7556', 'value': 4}, 'timestamp': '1753195068679'}, {'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'type': 'client_time_consume_last_result', 'query_id': '01bddc4d-0000-c7cf-0000-042114da7556', 'value': 0}, 'timestamp': '1753195068679'}, {'message': {'driver_type': 'PythonConnector', 'driver_version': '3.7.0', 'source': 'PythonConnector', 'Stacktrace': (False, '  File "snowflake/connector/cursor.py", line 1136, in execute\n  File "snowflake/connector/errors.py", line 290, in errorhandler_wrapper\n  File "snowflake/connector/errors.py", line 345, in hand_to_other_handler\n  File "snowflake/connector/errors.py", line 221, in default_errorhandler\n', None), 'query_id': '01bddc4d-0000-c7cf-0000-042114da755a', 'sql_state': '02000', 'reason': '002003 (02000)', 'ErrorNumber': '2003', 'type': 'client_sql_exception', 'exception': 'ProgrammingError'}, 'timestamp': '1753195068735'}]}.
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: 5000 ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 4efbd035-224c-49b9-92d8-8a2dafe1fc0d
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /telemetry/send?request_guid=4efbd035-224c-49b9-92d8-8a2dafe1fc0d HTTP/1.1" 200 None
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = None, after post request
+DEBUG:snowflake.connector.telemetry:Successfully uploading metrics to telemetry.
+INFO:snowflake.connector.connection:No async queries seem to be running, deleting session
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 1/1 active sessions
+DEBUG:snowflake.connector.network:remaining request timeout: 5000 ms, retry cnt: 1
+DEBUG:snowflake.connector.network:Request guid: 209e1416-59df-43ce-98fd-97f034f9a74a
+DEBUG:snowflake.connector.network:socket timeout: 60
+DEBUG:snowflake.connector.vendored.urllib3.connectionpool:https://cms-idrnp.privatelink.snowflakecomputing.com:443 "POST /session?delete=true&request_guid=209e1416-59df-43ce-98fd-97f034f9a74a HTTP/1.1" 200 None
+DEBUG:snowflake.connector.network:SUCCESS
+DEBUG:snowflake.connector.network:Session status for SessionPool 'cms-idrnp.privatelink.snowflakecomputing.com', SessionPool 0/1 active sessions
+DEBUG:snowflake.connector.network:ret[code] = None, after post request
+DEBUG:snowflake.connector._query_context_cache:clear_cache() called
+DEBUG:snowflake.connector.connection:Session is closed
