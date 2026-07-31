@@ -18,15 +18,24 @@
 # Joshua Turner  2023-08-14 Added EFT functionality  
 # Paul Baranoski 2024-09-12 Add (${ENVNAME}) to SUBJECT for all emails. 
 #                           Changed emails to use CMS_EMAIL_SENDER and ENIGMA_EMAIL_FAILURE_RECIPIENT.
+# Viren Khanna   2026-06-05 Added testing Functionality
 ############################################################################################################
 
 set +x
 
 #############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/ASC_PTB_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}ASC_PTB_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -70,7 +79,7 @@ CURR_YYYY=`date +%Y`
 
 CLM_EFCT_DT_BEG="${PRIOR_YYYY}0101"
 ##CLM_EFCT_DT_END=`date -d "-${CURR_DAY} days" +%Y%m%d `
-CLM_EFCT_DT_END="${CURR_YYYY}0301"
+CLM_EFCT_DT_END="${CURR_YYYY}0331"
 CLM_LINE_FROM_DT_YYYY=${PRIOR_YYYY}
 
 echo "CLM_EFCT_DT_BEG=${CLM_EFCT_DT_BEG}" >> ${LOGNAME}
@@ -133,7 +142,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="ASC PTB extract (${ENVNAME})" 
+SUBJECT="ASC PTB extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the ASC PTB file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ASC_PTB_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
