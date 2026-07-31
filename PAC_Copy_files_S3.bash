@@ -8,7 +8,6 @@
 # Created: Viren Khanna  12/12/2022
 # Modified:
 #
-# Paul Baranoski 03/11/2024 Modified code to get REC_CNTS for DashboardInfo.sh.
 ######################################################################################
 set +x
 
@@ -58,6 +57,9 @@ echo "   S3FilenameTmstmp=${S3FilenameTmstmp} " >> ${LOGNAME}
 S3BucketAndFldr=$1
 S3FilenameTmstmp=$2
 
+echo " " >> ${LOGNAME}
+
+
 
 #########################################
 # clean-up .csv files in data directory
@@ -70,17 +72,8 @@ echo "Remove PAC*.csv from data directory" >> ${LOGNAME}
 rm "${DATADIR}"PAC*.csv 2>>  ${LOGNAME}
 
 
-############################################
-# get list of split files and record counts
-# for DashboardInfo.sh
-############################################
+
 echo " " >> ${LOGNAME}
-
-REC_CNTS=`ls -1 ${DATADIR}${DATADIR}PAC* | xargs wc -l | grep -v 'total' | awk '{print $2 " " $1}' | cut -d/ -f7 | xargs printf "%s %'14d\n"` 2>> ${LOGNAME}
-
-# This is required for DashboardInfo.sh --> its looking for that keyword to retrieve record counts
-echo "filenamesAndCounts: ${REC_CNTS} "   >> ${LOGNAME}
-
 
 #################################
 # get list of split.csv files

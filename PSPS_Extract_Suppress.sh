@@ -20,14 +20,23 @@
 # Paul Baranoski 2024-08-15 Create new set of date parameters for SERV_CYQ and PROC_CYQ. 
 # Paul Baranoski 2024-09-12 Add $ENVNAME to SUBJECT line of success email.
 #                           Changed emails to use CMS_EMAIL_SENDER and ENIGMA_EMAIL_FAILURE_RECIPIENT.
+# Viren Khanna   2026-04-28 Modify to Add "TESTING" functionality.
 ######################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/PSPS_Extract_Supress_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_PSPS_Extract_Supress_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -154,7 +163,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="PSPS Q6 Suppression Extract (${ENVNAME})" 
+SUBJECT="PSPS Q6 Suppression Extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the PSPS Q6 Suppression file has completed.\n\nA mainframe version of the below file will be created as ${EMAIL_MF_FILENAME}.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${PSPS_SUPPRESSION_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1

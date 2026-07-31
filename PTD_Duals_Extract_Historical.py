@@ -11,7 +11,9 @@
 # Paul Baranoski 2023-01-18 Modify filename to only use underscores prior to timestamp.
 # Josh Turner    2024-06-10 Temp change stage to the monthly stage to get around deep freeze in S3
 # Nat. Tinovsky  2024-12-20 Removed temp change for SF stage from Monthly to Historical: BIA_{ENVNAME}_XTR_PTDDUALHSTR_STG
-#                           Updated length of CLM_PRSBNG_PRVDR_GNRC_ID_NUM from 20 -> 35                            
+#                           Updated length of CLM_PRSBNG_PRVDR_GNRC_ID_NUM from 20 -> 35      
+# Paul Baranoski 2025-08-21 Update claim types filter to be 1,2,4.    
+# Paul Baranoski 2025-09-15 Source CLM_PTNT_BIRTH_DT FROM BENE TABLE going forward per Deana.                  
 ########################################################################################################
 import os
 import sys
@@ -140,7 +142,7 @@ try:
                           AND TO_CHAR(C.CLM_FROM_DT,'YYYYMM') =  BD.CLNDR_CY_MO_NUM
                           --AND TRIM(C.CLM_FROM_DT (FORMAT 'YYYYMM')) (INTEGER)
                             --						 = BD.CLNDR_CY_MO_NUM
-                        WHERE C.CLM_TYPE_CD IN (1,2,3,4)
+                        WHERE C.CLM_TYPE_CD IN (1,2,4)
                           AND C.CLM_LTST_CLM_IND = 'Y'
                           
                 )
@@ -152,10 +154,10 @@ try:
                 ,RPAD(C.CLM_HIC_NUM,20,' ')              AS HICN
                 ,RPAD(C.CLM_CARDHLDR_ID,20,' ')          AS CARDHLDR_ID
                 
-                ,CASE WHEN C.CLM_PTNT_BIRTH_DT IS NULL    THEN '00000000'
-                  WHEN C.CLM_PTNT_BIRTH_DT = '0001-01-01' THEN '00000000'
-                  WHEN C.CLM_PTNT_BIRTH_DT = '1000-01-01' THEN '00000000'
-                  ELSE TO_CHAR(C.CLM_PTNT_BIRTH_DT,'YYYYMMDD') 
+                ,CASE WHEN B.BENE_BRTH_DT IS NULL    THEN '00000000'
+                  WHEN B.BENE_BRTH_DT = '0001-01-01' THEN '00000000'
+                  WHEN B.BENE_BRTH_DT = '1000-01-01' THEN '00000000'
+                  ELSE TO_CHAR(B.BENE_BRTH_DT,'YYYYMMDD') 
                 END   AS PTNT_DATE_OF_BIRTH
                 
                 
@@ -219,7 +221,10 @@ try:
                   AND C.CLM_DT_SGNTR_EFCTV_SK = DLST.CLM_DT_SGNTR_SK
                   AND C.CLM_TYPE_EFCTV_CD     = DLST.CLM_TYPE_CD
                   AND C.CLM_NUM_EFCTV_SK      = DLST.CLM_NUM_SK
-                                    
+
+                INNER JOIN IDRC_{ENVNAME}.CMS_DIM_BENE_{ENVNAME}.BENE B
+				   ON C.BENE_SK = B.BENE_SK
+                   
                 INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE CL
                    ON C.CLM_NUM_SK      = CL.CLM_NUM_SK
                   AND C.CLM_TYPE_CD     = CL.CLM_TYPE_CD
@@ -241,7 +246,7 @@ try:
                   AND C.CLM_FROM_DT BETWEEN CPN.CNTRCT_PBP_BGN_DT 
                                         AND CPN.CNTRCT_PBP_END_DT
 
-                WHERE C.CLM_TYPE_CD IN (1,2,3,4)
+                WHERE C.CLM_TYPE_CD IN (1,2,4)
                         
                 ORDER BY STATE_CD
                         ,EFCTV_UNIQ_ID

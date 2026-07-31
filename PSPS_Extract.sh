@@ -1,5 +1,4 @@
 #!/usr/bin/bash
-#
 ######################################################################################
 # Name:  PSPS_Extract.sh
 #
@@ -26,14 +25,23 @@
 # Paul Baranoski 2024-01-25 Add $ENVNAME to SUBJECT line of emails.
 # Paul Baranoski 2024-07-26 Create new set of date parameters for SERV_CYQ and PROC_CYQ. Correct logic how the SERV_CYQ is built
 #                           for Q5 and Q6.
+# Viren Khanna   2026-04-28 Modify to Add "TESTING" functionality.
 ######################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/PSPS_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_PSPS_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -88,7 +96,7 @@ sendSuccessEmail() {
 	fi
 	echo "EMAIL_MF_FILENAMES=${EMAIL_MF_FILENAMES}" >> ${LOGNAME}
 
-	SUBJECT="PSPS Quarterly Extract (${ENVNAME})" 
+	SUBJECT="PSPS Quarterly Extract (${ENVNAME}${TESTEMAIL})" 
 	MSG="The PSPS Quarterly Extract has completed.\n\nA mainframe version(s) of the below file(s) will be created as ${EMAIL_MF_FILENAMES}.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PSPS_EMAIL_SENDER}" "${PSPS_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1

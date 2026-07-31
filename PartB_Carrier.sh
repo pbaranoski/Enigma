@@ -14,14 +14,20 @@
 # Paul Baranoski 2024-02-01 Remove call to box. Add EFT functionality.
 #                           Add logic to remove temp file at end of script.
 # Paul Baranoski 2025-02-04  Modify Email constants to use CMS_EMAIL_SENDER and ENIGMA_EMAIL_FAILURE_RECIPIENT.
+# Paul Baranoski 2026-02-04 Modify success email. Change PECOS_EMAIL_SENDER to CMS_EMAIL_SENDER.
 ######################################################################################
 set +x
+
+TESTING="Y"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/PartB_Carrier_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}PartB_Carrier_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -185,10 +191,10 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="PartB Carrier extract (${ENVNAME})" 
+SUBJECT="PartB Carrier extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the PartB Carrier file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
-${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PECOS_EMAIL_SENDER}" "${PARTB_CARRIER_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${PARTB_CARRIER_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 if [[ $RET_STATUS != 0 ]]; then
 		echo "" >> ${LOGNAME}

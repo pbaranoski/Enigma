@@ -64,6 +64,9 @@
 #                           remove SAS file extension from filename for EFT filename conversion. 
 # Paul Baranoski 2024-06-13 Add code to remove SAS file extension from SF_FILENAME variable. 
 # Paul Baranoski 2025-07-18 Add -f flag to gzip command to force replacement of unzipped file if still on server. 
+# Paul Baranoski 2026-01-13 Add logic to retrieve "TESTING" environment variable. Modify If statment to only load EFT Files to s3://EFT_FILES
+#                           when the HLQ in ("P#EFT,T#EFT,MNUP) AND swTESTING=N.
+# Paul Baranoski 2026-01-30 Comment incorrect use of "continue" verb in IF statement. Added "exit 12" instead. 
 ######################################################################################
 
 ######################################################################################
@@ -77,6 +80,8 @@ TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
 LOGNAME=/app/IDRC/XTR/CMS/logs/ProcessFiles2EFT_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
+
+swTESTING=${TESTING:='N'}
 
 #EFT_SF_2_MF_XREF_FILE=EFT_SF_2_MF_XREF.txt
 
@@ -116,6 +121,9 @@ echo "Parameters to script: " >> ${LOGNAME}
 echo "   S3ParmExtractFolder=${S3ParmExtractFolder} " >> ${LOGNAME}
 echo "   S3ParmEFTDestFolder=${S3ParmEFTDestFolder} " >> ${LOGNAME}
 
+echo ""  >> ${LOGNAME}
+echo "   swTESTING=${swTESTING}"  >> ${LOGNAME}
+echo ""  >> ${LOGNAME}
 
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
@@ -123,6 +131,7 @@ echo "   S3ParmEFTDestFolder=${S3ParmEFTDestFolder} " >> ${LOGNAME}
 source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
 
 EFT_SF_2_MF_XREF_FILE=EFT_SF_2_MF_XREF_${ENVNAME}.txt
+
 
 #############################################################
 # Examples:
@@ -233,7 +242,8 @@ echo "EXTRACT_FILES=${EXTRACT_FILES}" >> ${LOGNAME}
 
 if [ -z "${EXTRACT_FILES}" ];then
 	echo "No files to process in ${S3BucketAndHLFolder}${S3ExtractFolder} " >> ${LOGNAME}
-	continue
+	#continue
+	exit 12
 fi
 
 
@@ -484,15 +494,9 @@ do
 	# NOTE: Only send/trigger files that can actually be EFT'd.
 	#############################################################
 	HLQ=`echo ${MF_FILENAME} | cut -d. -f1 `
-	
-	if ! [ "${HLQ}" = "P#EFT" -o "${HLQ}" = "T#EFT" -o "${HLQ}" = "MNUP" ];then
-		echo "" >> ${LOGNAME}
-		echo "HLQ=${HLQ}; File NOT loaded to S3 EFT_FILES folder."  >> ${LOGNAME}
 
-		# Remove file from linux since its not being moved	
-		rm ${DATADIR}${txt_filename} 1>> ${LOGNAME}  2>&1
-		
-	else
+	if [[ ( "${HLQ}" = "P#EFT" || "${HLQ}" = "T#EFT" || "${HLQ}" = "MNUP" ) &&  ${swTESTING} = "N" ]];then
+
 		echo "" >> ${LOGNAME}
 		echo "Upload linux decompressed file ${txt_filename} to s3://${S3BucketAndHLFolder}${S3_EFT_DESTINATION}${MF_FILENAME}"  >> ${LOGNAME}
 		
@@ -511,6 +515,12 @@ do
 
 			exit 12
 		fi
+	else	
+		echo "" >> ${LOGNAME}
+		echo "HLQ=${HLQ}; swTESTING=${swTESTING}. File NOT loaded to S3 EFT_FILES folder."  >> ${LOGNAME}
+
+		# Remove file from linux since its not being moved	
+		rm ${DATADIR}${txt_filename} 1>> ${LOGNAME}  2>&1
 	fi
 
 

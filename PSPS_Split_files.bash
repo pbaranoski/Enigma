@@ -23,14 +23,24 @@
 #                           Modified a few lines to add code to route std err msgs to log file.
 # Paul Baranoski 11/8/2024  Modify logic to get filenames and record counts to make it simpler. Add logic to use wc -lc to get record and byte counts 
 #                           with DASHBOARD_INFO: label for DashboardInfo_MS.sh to get extract files, record counts, and byte counts.
+# Viren Khanna   2026-05-14 Modify to Add "TESTING" functionality.
 ######################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
+
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/PSPS_Split_files_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_PSPS_Split_files_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -308,7 +318,7 @@ echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 S3Files="${filenamesAndCounts}" 
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="PSPS Split Files Extract for ${QTR} (${ENVNAME})" 
+SUBJECT="PSPS Split Files Extract for ${QTR} (${ENVNAME}${TESTEMAIL})" 
 MSG="The PSPS Split Files Extract for ${QTR} has completed.\n\nMainframe versions of the files will be created like ${EMAIL_MF_FILENAME}.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 

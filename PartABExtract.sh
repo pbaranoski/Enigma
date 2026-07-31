@@ -8,8 +8,19 @@
 # Created: Sean Whitelock
 # Modified:
 #
+# Paul Baranoski 2025-12-16 Added "Ended at `date` " to log file. This is the phrase the Dashboard script/program 
+#                           is looking for to determine if extract ended successfully. 
+# Paul Baranoski 2026-03-19 Added TESTING functionality. 
 #########################################################################
 set +x
+
+#############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 ####################################################
 # Establish log file
@@ -18,7 +29,7 @@ TMSTMP=${TMSTMP=`date +%Y%m%d.%H%M%S`}
 
 # Export TMSTMP variable
 export TMSTMP
-LOGNAME=/app/IDRC/XTR/CMS/logs/Part_AB_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}Part_AB_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -32,11 +43,8 @@ echo "" >> ${LOGNAME}
 ####################################################
 # SET DATABASE NAMES VARIABLES
 ####################################################
-source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
 
 LOGDIR=${LOG_PATH}/
-
-
 
 
 ####################################################
@@ -124,7 +132,7 @@ if [[ $RET_STATUS != 0  ]]; then
         echo "Shell script PartABExtract.sh failed." >> ${LOGNAME}
 
         # Send Failure Email
-        SUBJECT="Shell script PartABExtract.sh - Failed ($ENVNAME)"
+        SUBJECT="Shell script PartABExtract.sh - Failed (${ENVNAME}${TESTEMAIL})"
         MSG="Shell script PartABExtract.sh failed"
         ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${Part_AB_EMAIL_SENDER}" "${Part_AB_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>$1
 
@@ -161,7 +169,7 @@ if [[ $YEAR_RET != 0 || $MONTH_RET != 0 ]]; then
     MSG+="Failed to copy MONTH file: ${MONTH_FILE_ZIP} from bucket ${PARTAB_BUCKET}. "
   fi
 
-  SUBJECT="PartABExtract.sh - Failed (${ENVNAME})"
+  SUBJECT="PartABExtract.sh - Failed (${ENVNAME}${TESTEMAIL})"
 
   ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -214,7 +222,7 @@ if [[ $YEAR_RET != 0 || $MONTH_RET != 0 ]]; then
         MSG+="Failed to move MONTH file: ${MONTH_FILE_ZIP} to S3 archive folder. "
     fi
 
-    SUBJECT="PartABReports.sh - Failed moving S3 extract files (${ENVNAME})"
+    SUBJECT="PartABReports.sh - Failed moving S3 extract files (${ENVNAME}${TESTEMAIL})"
 
     ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -232,13 +240,13 @@ echo "Successfully moved PartAB Year and Month extract files to S3 archive folde
 HTML_YEAR_FILE=PartAB_Year_Report_${TMSTMP}.html
 HTML_MONTH_FILE=PartAB_Month_Report_${TMSTMP}.html
 
-echo "Building HTML report: ${OUTPUT_FILE} from ${INPUT_FILE}" >> ${LOGNAME}
-
 build_html_report() {
   local INPUT_FILE=$1
   local OUTPUT_FILE=$2
 
-  echo "<html><body><table cellspacing='1px' border='1'>" > ${DATADIR}${OUTPUT_FILE}
+  echo "Building HTML report: ${OUTPUT_FILE} from ${INPUT_FILE}" >> ${LOGNAME}
+
+  echo "<html><body><table cellspacing='1px' border='1'>" > ${DATADIR}/${OUTPUT_FILE}
   local firstRecord=Y
 
   while read line; do
@@ -247,41 +255,35 @@ build_html_report() {
     IFS='|' read -ra FIELDS <<< "$line"
 
     if [ "${firstRecord}" == "Y" ]; then
-      echo "<tr bgcolor='#C5D9F1'>" >> ${DATADIR}${OUTPUT_FILE}
+      echo "<tr bgcolor='#C5D9F1'>" >> ${DATADIR}/${OUTPUT_FILE}
       TAG=th
       firstRecord=N
     else
-      echo "<tr>" >> ${DATADIR}${OUTPUT_FILE}
+      echo "<tr>" >> ${DATADIR}/${OUTPUT_FILE}
       TAG=td
     fi
 
     colNum=0
-
-##*****\/****
     for fld in "${FIELDS[@]}"; do
       ((++colNum))
 
-		if [ "${firstRecord}" == "Y" ]; then
-			# Regular columns
-			echo -n "<${TAG} style='font-family:Arial;font-size:8pt;font-weight:bold;'>${fld}</${TAG}>" >> ${DATADIR}${OUTPUT_FILE}
-		else
-			# Apply numeric formatting to currency fields (columns 4–9)
-			if [[ ${colNum} -ge 4 && ${colNum} -le 9 ]]; then
-				formatted=$(echo "${fld}" | awk '{printf "%\047.2f", $1}')
-				echo -n "<${TAG} style='font-family:Arial;font-size:8pt;font-weight:bold;' align='right'>${formatted}</${TAG}>" >> ${DATADIR}${OUTPUT_FILE}
-			else
-				# Regular columns
-				echo -n "<${TAG} style='font-family:Arial;font-size:8pt;font-weight:bold;'>${fld}</${TAG}>" >> ${DATADIR}${OUTPUT_FILE}
-			fi
-		fi
-##*****/\****
+      # Apply numeric formatting only on data rows (TAG == td)
+      if [[ ${colNum} -ge 4 && ${colNum} -le 9 && "${TAG}" == "td" ]]; then
+        formatted=$(echo "${fld}" | awk '{printf "%\047.2f", $1}')
+        echo -n "<${TAG} style='font-family:Arial;font-size:8pt;font-weight:bold;' align='right'>${formatted}</${TAG}>" >> ${DATADIR}/${OUTPUT_FILE}
+      else
+        # Regular columns or header row
+        echo -n "<${TAG} style='font-family:Arial;font-size:8pt;font-weight:bold;'>${fld}</${TAG}>" >> ${DATADIR}/${OUTPUT_FILE}
+      fi
     done
 
-    echo "</tr>" >> ${DATADIR}${OUTPUT_FILE}
-  done < ${DATADIR}${INPUT_FILE}
+    echo "</tr>" >> ${DATADIR}/${OUTPUT_FILE}
+  done < ${DATADIR}/${INPUT_FILE}
 
-  echo "</table></body></html>" >> ${DATADIR}${OUTPUT_FILE}
+  echo "</table></body></html>" >> ${DATADIR}/${OUTPUT_FILE}
 }
+
+# Build reports
 build_html_report ${YEAR_TXT_FILE} ${HTML_YEAR_FILE}
 build_html_report ${MONTH_TXT_FILE} ${HTML_MONTH_FILE}
 
@@ -298,7 +300,7 @@ RET_STATUS=$?
 if [[ $RET_STATUS != 0 ]]; then
   echo "" >> ${LOGNAME}
   echo "Error converting YEAR file to CSV" >> ${LOGNAME}
-  SUBJECT="Error converting YEAR report to CSV in PartABExtract.sh (${ENVNAME})"
+  SUBJECT="Error converting YEAR report to CSV in PartABExtract.sh (${ENVNAME}${TESTEMAIL})"
   MSG="Error converting ${YEAR_TXT_FILE} to CSV format."
   ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
   exit 12
@@ -310,7 +312,7 @@ RET_STATUS=$?
 if [[ $RET_STATUS != 0 ]]; then
   echo "" >> ${LOGNAME}
   echo "Error converting MONTH file to CSV" >> ${LOGNAME}
-  SUBJECT="Error converting MONTH report to CSV in PartABExtract.sh (${ENVNAME})"
+  SUBJECT="Error converting MONTH report to CSV in PartABExtract.sh (${ENVNAME}${TESTEMAIL})"
   MSG="Error converting ${MONTH_TXT_FILE} to CSV format."
   ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
   exit 12
@@ -326,8 +328,18 @@ echo "Attach CSVs to Email and send" >> ${LOGNAME}
 RPT_YEAR_HTML=$(cat ${DATADIR}${HTML_YEAR_FILE})
 RPT_MONTH_HTML=$(cat ${DATADIR}${HTML_MONTH_FILE})
 
-SUBJECT="PartAB Report - ${ENVNAME}"
-MSG="<p>Medicare Part A/B Payment Report</p><br><b>YTD Report:</b><br>${RPT_YEAR_HTML}<br><br><b>Monthly Report:</b><br>${RPT_MONTH_HTML}"
+SUBJECT="Complete--->Remedy_374923 Part AB Payments ${MONRPTMTH} ${RPTYEAR} - ${ENVNAME}${TESTEMAIL}"
+MSG="<p>Hi All,</p>
+<p>Please find the attached Medicare Part A/B Payments reports for the month of ${MONRPTMTH} ${RPTYEAR} and Federal Fiscal Year ${FFRPTYEAR} YTD. (Report Run Date=${RPTMTH}).</p>
+<p>Please let us know if you have any questions.</p>
+<p>Thanks,<br>
+BIT Support Team</p>
+<br>
+<p><b>YTD Report:</b></p>
+${RPT_YEAR_HTML}
+<br>
+<p><b>Monthly Report:</b></p>
+${RPT_MONTH_HTML}"
 
 # Attach both CSVs and send HTML in body
 ${PYTHON_COMMAND} ${RUNDIR}sendEmailHTML.py "${CMS_EMAIL_SENDER}" "${PART_AB_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DATADIR}PartAB_Year_${TMSTMP}.csv,${DATADIR}PartAB_Month_${TMSTMP}.csv" >> ${LOGNAME} 2>&1
@@ -337,12 +349,12 @@ RET_STATUS=$?
 if [[ $RET_STATUS != 0 ]]; then
   echo "" >> ${LOGNAME}
   echo "Error in calling sendEmailHTML.py" >> ${LOGNAME}
-  SUBJECT="Sending success email in PartABExtract.sh - Failed (${ENVNAME})"
+  SUBJECT="Sending success email in PartABExtract.sh - Failed (${ENVNAME}${TESTEMAIL})"
   MSG="Failed to send success email for PartAB reports (CSV and HTML)."
   ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
   exit 12
 fi
-exit 0
+
 
 ############################################################################################################
 # Script Clean-up
@@ -362,4 +374,6 @@ rm -f ${DATADIR}PartAB_Month_${TMSTMP}.csv
 ############################################################################################################
 echo "" >> ${LOGNAME}
 echo "PartABExtract.sh completed successfully at $(date)" >> ${LOGNAME}
+echo "Ended at `date` " >> ${LOGNAME}
+echo "" >> ${LOGNAME}
 exit 0

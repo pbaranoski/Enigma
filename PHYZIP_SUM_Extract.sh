@@ -18,12 +18,20 @@
 set +x
 
 #############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
 
 
-LOGNAME=/app/IDRC/XTR/CMS/logs/PHYZIP_SUM_Extracts_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}PHYZIP_SUM_Extracts_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -59,8 +67,6 @@ echo "   ParmOverrideDate=${ParmOverrideDate} " >> ${LOGNAME}
 #############################################################
 # Include modules 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
-
 source ${RUNDIR}FilenameCounts.bash
 
 S3BUCKET=${PHYZIP_BUCKET} 
@@ -162,7 +168,7 @@ do
 		echo "Python script PHYZIP_SUM_Extract.py failed" >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="PHYZIP SUM Extract - Failed (${ENVNAME})"
+		SUBJECT="PHYZIP SUM Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Python script PHYZIP_SUM_Extract.py failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -193,7 +199,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email." >> ${LOGNAME}
 
 # Send Success email	
-SUBJECT="PHYZIP SUM Extract - completed ($ENVNAME)"
+SUBJECT="PHYZIP SUM Extract - completed (${ENVNAME}${TESTEMAIL})"
 MSG="PHYZIP SUM Extract completed. \n\nThe following extract files were created:\n\n${S3Files}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${PHYZIP_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}"  >> ${LOGNAME} 2>&1
 
@@ -203,7 +209,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Error in calling sendEmail.py" >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="Sending Success email in PHYZIP_SUM_Extracts.sh  - Failed (${ENVNAME})"
+	SUBJECT="Sending Success email in PHYZIP_SUM_Extracts.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Sending Success email in PHYZIP_SUM_Extracts.sh has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -229,7 +235,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Shell script ProcessFiles2EFT.sh failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="PHYZIP SUM Extract EFT process  - Failed (${ENVNAME})"
+	SUBJECT="PHYZIP SUM Extract EFT process  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="PHYZIP SUM Extract EFT process has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

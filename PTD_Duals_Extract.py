@@ -9,7 +9,7 @@
 #
 # Paul Baranoski    2022-12-27 Modify program to handle both PTD Duals Monthly and Daily processing.
 # Natalya Tinovsky  2024-12-17 Updated length of C.CLM_PRSBNG_PRVDR_GNRC_ID_NUM from 20 -> 35
-#
+# Paul Baranoski    2025-08-25 Source CLM_PTNT_BIRTH_DT FROM BENE TABLE going forward per Deana.
 ########################################################################################################
 import os
 import sys
@@ -151,12 +151,11 @@ try:
                     ,RPAD(C.CLM_HIC_NUM,20,' ')              AS HICN
                     ,RPAD(C.CLM_CARDHLDR_ID,20,' ')          AS CARDHLDR_ID
                     
-                    ,CASE WHEN C.CLM_PTNT_BIRTH_DT IS NULL    THEN '00000000'
-                      WHEN C.CLM_PTNT_BIRTH_DT = '0001-01-01' THEN '00000000'
-                      WHEN C.CLM_PTNT_BIRTH_DT = '1000-01-01' THEN '00000000'
-                      ELSE TO_CHAR(C.CLM_PTNT_BIRTH_DT,'YYYYMMDD') 
+                    ,CASE WHEN B.BENE_BRTH_DT IS NULL    THEN '00000000'
+                      WHEN B.BENE_BRTH_DT = '0001-01-01' THEN '00000000'
+                      WHEN B.BENE_BRTH_DT = '1000-01-01' THEN '00000000'
+                      ELSE TO_CHAR(B.BENE_BRTH_DT,'YYYYMMDD') 
                     END   AS PTNT_DATE_OF_BIRTH
-                    
                     
                     ,CASE WHEN C.BENE_SEX_CD IN ('', '~') 
                       THEN '0' 
@@ -218,6 +217,9 @@ try:
                   AND C.CLM_TYPE_EFCTV_CD     = DLST.CLM_TYPE_CD
                   AND C.CLM_NUM_EFCTV_SK      = DLST.CLM_NUM_SK
                                     
+                INNER JOIN IDRC_{ENVNAME}.CMS_DIM_BENE_{ENVNAME}.BENE B
+				   ON C.BENE_SK = B.BENE_SK
+                   
                 INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE CL
                    ON C.CLM_NUM_SK      = CL.CLM_NUM_SK
                   AND C.CLM_TYPE_CD     = CL.CLM_TYPE_CD

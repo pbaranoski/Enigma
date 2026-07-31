@@ -43,15 +43,27 @@
 # Paul Baranoski 11/9/2024  Update filename to delete from PTD_DUALS_* to PTDDUALS_*. 
 # Paul Baranoski 12/3/2024  Change on 11/8/2024 accidentally broke code to get record count as last record in file. Add REC_CNT_INFO reference  
 #                           back, and use as input into variable REC_CNTS. REC_CNT_INFO needs record counts without commas.
+# Paul Baranoski 08/25/2025 Change calculation for CLM_SUBMSN_DT_START_DT to be more accurate/simple/straight forward.
+# Paul Baranoski 09/09/2025 Modified email recipient to PTDDUAL_EMAIL_SUCCESS_RECIPIENT for daily extracts when there is no data.
+# Paul Baranoski 2026-02-03 Modify to Add "TESTING" functionality.
 ############################################################################################################
 
 set +x
 
 #############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/PTD_Duals_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}PTD_Duals_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -139,7 +151,10 @@ echo "Create Claim Submission Start and End date parameters for the Python Extra
 if [ ${PROCESSING_TYPE} = "M" ]; then
 	# Process for entire prior month; cur_MM - 1 day -> last day of prior month
 	### --> Does not always work -> CLM_SUBMSN_DT_START_DT=`date -d "-1 month" +%Y-%m-01`
-	CLM_SUBMSN_DT_START_DT=`date -d "$(date +%Y-%m-01) - 1 month" +%Y-%m-%d`
+	#CLM_SUBMSN_DT_START_DT=`date -d "$(date +%Y-%m-01) - 1 month" +%Y-%m-%d`
+	
+	# This is more accurate date calc
+	CLM_SUBMSN_DT_START_DT=`date -d "$(date +%Y-%m-01) - 1 day" +%Y-%m-01`
 	CLM_SUBMSN_DT_END_DT=`date -d "$(date +%Y-%m-01) - 1 day" +%Y-%m-%d`
 	
 	#CLM_SUBMSN_DT_START_DT=2023-09-01
@@ -345,9 +360,9 @@ if [ ${NOF_ROWS} == 0 ]; then
 		echo "Python script PTD_Duals_extract.py - No data available" >> ${LOGNAME}
 
 		# Send No data available email	
-		SUBJECT="PTD Duals ${EXTRACT_TYPE} Extract  - No data available. (${ENVNAME})"
+		SUBJECT="PTD Duals ${EXTRACT_TYPE} Extract  - No data available. (${ENVNAME}${TESTEMAIL})"
 		MSG="PTD Duals ${EXTRACT_TYPE} Extract  - No data available."
-		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PTDDUAL_EMAIL_SENDER}" "${PTDDUAL_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PTDDUAL_EMAIL_SENDER}" "${PTDDUAL_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 		ScriptSuccessfulEnd
 
@@ -605,7 +620,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "REC_CNTS=${REC_CNTS} "   >> ${LOGNAME}
 
-SUBJECT="PartD Duals ${EXTRACT_TYPE} extract (${ENVNAME})" 
+SUBJECT="PartD Duals ${EXTRACT_TYPE} extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the PartD Duals ${EXTRACT_TYPE} file(s) from Snowflake has completed.\n\nEFT versions of the below files were created using the following file mask ${EFT_FILEMASK}.\n\nThe following file(s) were created:\n\n${REC_CNTS}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PTDDUAL_EMAIL_SENDER}" "${PTDDUAL_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1

@@ -31,6 +31,9 @@
 # Paul Baranoski 2023-07-07 Force GitHub to pick up script to be copied to server.
 # Paul Baranoski 2023-12-07 Add ENVNAME variable to email subject line.
 # Nat. Tinovsky  2024-12-20 Changed S3_EXTRACT_FILE,ST_EXT_FNAME_MODEL to 1st node=PTDDUAl to support EFT process var mapping.
+# Paul Baranoski 2025-08-21 Updated Submission dates for TX, and THE S3_EXTRACT_FILE filename.  
+# Paul Baranoski 2025-10-14 Modify literal for one "REC_CNTS" to prevent Dashboard from double-counting. Add blank line after REC_CNTS for success email 
+#                           To allow Dashboard to properly stop when collecting Dashboard info.
 ############################################################################################################
 
 set +x
@@ -42,7 +45,7 @@ set +x
 CLNDR_CY_MO_NUM_ENDDT=200701
 
 CLM_SUBMSN_DT_START_DT=2022-01-01
-CLM_SUBMSN_DT_END_DT=2025-07-31
+CLM_SUBMSN_DT_END_DT=2025-08-30
 
 
 #############################################################
@@ -57,9 +60,9 @@ EXTRACT_TYPE=Historical
 
 ST_PARMFILE=PTDDualsHistStParms.txt
 S3_EXTRACT_FILE="PTDDUALS_HIST_${TMSTMP}.csv.gz"
-S3_EXTRACT_FILE=PTDDUALS_HIST_Y2025M07_${TMSTMP}.csv.gz
+S3_EXTRACT_FILE=PTDDUALS_HIST_Y2025M08_${TMSTMP}.csv.gz
 
-ST_EXT_FNAME_MODEL=PTDDUALS_HIST_XX_Y2025M07_${TMSTMP}.txt
+ST_EXT_FNAME_MODEL=PTDDUALS_HIST_XX_Y2025M08_${TMSTMP}.txt
 
 
 touch ${LOGNAME}
@@ -290,7 +293,7 @@ echo "Get record counts for state files " >> ${LOGNAME}
 REC_CNT_INFO=`ls ${DATADIR}${wildCardStFiles} | xargs wc -l | awk '{print $2 " " $1}' | cut -d/ -f7 ` 2>> ${LOGNAME}
 REC_CNTS=`echo "${REC_CNT_INFO}" | xargs printf "%s %'14d\n" ` 2>> ${LOGNAME}
 
-echo "REC_CNTS=${REC_CNTS} "   >> ${LOGNAME}
+echo "REC_INFO_CNTS=${REC_CNTS} "   >> ${LOGNAME}
 
 
 #############################################################
@@ -424,6 +427,7 @@ fi
 echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "REC_CNTS=${REC_CNTS} "   >> ${LOGNAME}
+echo "" >> ${LOGNAME}
 
 SUBJECT="PTD Duals ${EXTRACT_TYPE} extract (${ENVNAME})" 
 MSG="The Extract for the creation of the PTD Duals ${EXTRACT_TYPE} file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${REC_CNTS}"

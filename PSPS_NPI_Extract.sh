@@ -33,8 +33,15 @@
 #                           with DASHBOARD_INFO: label for DashboardInfo_MS.sh to get extract files, record counts, and byte counts.
 # Paul Baranoski 02/04/2025 Rewrite script to EFT all-in-one-file to MF and archive the split files.
 ######################################################################################
-
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 
 #############################################################
@@ -42,7 +49,7 @@ set +x
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
 RUNDATE=`date +%Y%m%d`
-LOGNAME=/app/IDRC/XTR/CMS/logs/PSPS_NPI_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_PSPS_NPI_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -361,7 +368,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${REC_CNTS} "   >> ${LOGNAME}
 
-SUBJECT="PSPS NPI ${ext_mon} extract (${ENVNAME})" 
+SUBJECT="PSPS NPI ${ext_mon} extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the PSPS NPI ${ext_mon} file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${REC_CNTS}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${PSPSNPI_EMAIL_SENDER}" "${PSPSNPI_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1

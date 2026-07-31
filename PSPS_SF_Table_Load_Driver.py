@@ -11,6 +11,9 @@
 # Created    : 07/10/2025
 #
 # Paul Baranoski   2025-07-10 Create Module.
+# Paul Baranoski   2025-08-27 Modify logic to give rootLogger obj a logger name to ensure separate logger when calling functions in imported code.
+# Paul Baranoski   2025-11-04 Modify subprocess.checkoutput to subprocess.run
+# Paul Baranoski   2025-12-02 Modify Env variable names to match new SF table column names.
 ########################################################################################################
 
 import boto3 
@@ -28,6 +31,8 @@ import subprocess
 # Our common module with variable constants
 from SET_XTR_ENV import *
 
+import LoggerStandard as EnigmaLog
+
 
 DATA_DIR = "/app/IDRC/XTR/CMS/data/"
 LOG_DIR = "/app/IDRC/XTR/CMS/logs/"
@@ -42,27 +47,13 @@ RUNDIR = "/app/IDRC/XTR/CMS/scripts/run/"
 #############################################################
 # Functions
 #############################################################
-def setLogging():
-
-    # Configure root logger
-    #logging.config.fileConfig(os.path.join(config_dir,"loggerConfig.cfg"))
-    
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(funcName)-22s %(message)s",
-        encoding='utf-8', datefmt="%Y-%m-%d %H:%M:%S", 
-        #filename=f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
-        handlers=[
-        logging.FileHandler(f"{LOG_DIR}PSPS_SF_Table_Load_{TMSTMP}.log"),
-        logging.StreamHandler(sys.stdout)],    
-        level=logging.INFO)
- 
-    global rootLogger
-    rootLogger = logging.getLogger() 
-  
-    os.chmod(LOG_DIR, 0o777)  # for Python3
-    
-    #logger.setLevel(logging.INFO)
-
+def write_sp_info_2_log(sp_info):
+        
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stdout) 
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stderr) 
+    rootLogger.info(f"{sp_info.returncode=}")  
 
 def main_processing_loop():
 
@@ -73,11 +64,15 @@ def main_processing_loop():
         TMSTMP = datetime.now().strftime('%Y%m%d.%H%M%S')
         print(f"{TMSTMP=}")
 
+        global LOGNAME
+        LOGNAME = f"{LOG_DIR}PSPS_SF_Table_Load_{TMSTMP}.log"
+        
         ##########################################
         # Establish log file
         # NOTE: the \n before "started at" line is to ensure that this information is on a separate line, left-justified without any other logging info preceding it        
         ##########################################
-        setLogging()
+        global rootLogger
+        rootLogger = EnigmaLog.setLogging(LOGNAME)
         rootLogger.info(f"\nPSPS_SF_Table_Load_Driver.py started at {TMSTMP}")
        
         ##########################################
@@ -123,8 +118,8 @@ def main_processing_loop():
             SUBJECT=f"PSPS_SF_Table_Load_Driver.py  - Failed ({ENVNAME})"
             MSG=f"PSPS Extract file {s3PSPSFolder_n_filename} is not in S3. Process failed. "
             #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info)     
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)     
             
 
         ##########################################
@@ -139,8 +134,8 @@ def main_processing_loop():
             SUBJECT=f"PSPS_SF_Table_Load_Driver.py  - Failed ({ENVNAME})"
             MSG=f"PSPS Extract file {s3PSPSFolder_n_filename} is not in S3. Process failed. "
             #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
 
         ##########################################
         # Extract the "Body" of S3 PSPS extract file. 
@@ -180,8 +175,8 @@ def main_processing_loop():
             ## Send Failure email	
             SUBJECT=f"PSPS_SF_Table_Load_Driver.py  - Failed ({ENVNAME})"
             MSG=f"EFT Filename {sPSPS_Ext_Filename} is not named properly. Missing PSPSQ node. Process failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
         else:
             sQtr = sPSPS_Ext_Filename[(idx + 4) : (idx + 6) ]
 
@@ -192,8 +187,8 @@ def main_processing_loop():
             ## Send Failure email	
             SUBJECT=f"PSPS_SF_Table_Load_Driver.py  - Failed ({ENVNAME})"
             MSG=f"EFT Filename {sPSPS_Ext_Filename} is not named properly. Missing Timestamp node. Process Failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info)
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)
         else:
             sRunDtYYYYMMDD = "20" + sPSPS_Ext_Filename[(idx + 2) : (idx + 8) ]
             sRunDtYYYY = sRunDtYYYYMMDD[:4]
@@ -205,13 +200,14 @@ def main_processing_loop():
         rootLogger.info(f"{sRunDtYYYYMMDD=}")
         rootLogger.info(f"{sRunDtYYYY=}")
        
-        os.environ["PSPS_EXT_DT_YYYY"] = sRunDtYYYY
-        os.environ["PSPS_EXT_QTR"] = sQtr
+        os.environ["PSPS_SRVC_YR"] = sRunDtYYYY
+        os.environ["PSPS_SRV_QTR"] = sQtr
         os.environ["PSPS_EXT_RUN_DT"] = sRunDtYYYYMMDD
         os.environ["PSPS_EXT_FILENAME"] = sPSPS_Ext_Filename
 
-        sp_info = subprocess.check_output(['python3', 'PSPS_SF_Table_Load.py'], text=True)
-        rootLogger.info(sp_info)
+
+        sp_info = subprocess.run(['python3', 'PSPS_SF_Table_Load.py'], capture_output=True, text=True, check=True)
+        write_sp_info_2_log(sp_info)
 
 
         ####################################################################
@@ -220,8 +216,8 @@ def main_processing_loop():
         SUBJECT=f"PSPS_SF_Table_Load_Driver.py completed successfully. ({ENVNAME})"
         MSG = f"PSPS_SF_Table_Load_Driver.py successfully loaded PSPS EFT Extract file {sPSPS_Ext_Filename} into SF."
         #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG 
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        rootLogger.info(sp_info)
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+        write_sp_info_2_log(sp_info))
 
         ####################################################################
         # End of Processing
