@@ -233,15 +233,6 @@ try:
 
              ,C.CLM_FINL_ACTN_IND
              ,RPAD(COALESCE(C.CLM_BENE_MBI_ID,''),11,' ') AS BENE_MBI_ID
-             
-            --****\/***
-            ,RPAD(REPLACE(COALESCE(C.CLM_RFRG_FED_PRVDR_SPCLTY_CD,''),'~',''),2,' ') AS CLM_RFRG_FED_PRVDR_SPCLTY_CD
-            --,RPAD(REPLACE(COALESCE(C.CLM_RFRG_PRVDR_NPI_NUM,''),'~',''),10,' ') AS CLM_RFRG_PRVDR_NPI_NUM
-            ,RPAD(REPLACE(COALESCE(C.CLM_RFRG_PRVDR_TXNMY_CD,''),'~',''),10,' ') AS CLM_RFRG_PRVDR_TXNMY_CD
-            --,RPAD(REPLACE(COALESCE(C.PRVDR_CPO_FAC_NPI_NUM,''),'~',''),10,' ')  AS PRVDR_CPO_FAC_NPI_NUM
-            --,RPAD(REPLACE(COALESCE(C.PRVDR_RFRG_PRVDR_NPI_NUM,''),'~',''),10,' ') AS PRVDR_RFRG_PRVDR_NPI_NUM
-            --****/\***
-      
              ,'END'
 
           FROM IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM C   {SQL_SAMPLE_PHRASE} 

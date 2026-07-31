@@ -10,6 +10,8 @@
 # Modified:
 #
 # Paul Baranoski 2025-01-21 Create script.
+# Paul Baranoski 2026-07-23 Add REQ192 to log filename.
+#                           Modify code to create manifest file.
 ############################################################################################################
 
 set +x
@@ -18,12 +20,12 @@ set +x
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/DOJ_ModernVascular_Ext_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/DOJ_REQ192_ModernVascular_Ext_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
 DOJ_MODERN_VASCULAR_PARM_FILE=DOJ_ModernVascular_PARM_FILE.txt
-PREFIX=DOJ_ModernVascular
+PREFIX=DOJ_REQ192_ModernVascular
 
 
 touch ${LOGNAME}
@@ -219,6 +221,7 @@ do
 			echo "Concatenate S3 files using CombineS3Files.sh   " >> ${LOGNAME}
 			
 			${RUNDIR}CombineS3Files.sh ${S3BUCKET} ${concatFilename} 
+			##${PYTHON_COMMAND} ${RUNDIR}CombineS3FilesDriver.py ${S3BUCKET} ${concatFilename} 
 
 
 			#############################################################
@@ -259,8 +262,8 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="DOJ Modern Vascular extract ($ENVNAME) " 
-MSG="The Extract for the creation of the DOJ Modern Vascular data pull has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
+SUBJECT="DOJ REQ192 Modern Vascular extract ($ENVNAME) " 
+MSG="The Extract for the creation of the DOJ REQ192 Modern Vascular data pull has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -341,7 +344,7 @@ do
 	# Ex. UNZIP_FILE=xtr/DEV/Files2EFT/filename.txt
 	###################################################################
 	SOURCE_BUCKET=${S3Bucket}
-	ZIP_FILE=${S3HLFolder}${S3ExtractFolder}${gz_filename}
+	ZIP_FILE=${S3HLFolder}${gz_filename}
 	UNZIP_FILE=${S3HLFolder}${unzipped_filename} 
 
 	echo "SOURCE_BUCKET=${SOURCE_BUCKET}" >> ${LOGNAME}
@@ -381,73 +384,33 @@ done
 
 
 #############################################################
-# Get count of S3 files to include in manifest file.
+# Create Manifest file
 #############################################################
 echo "" >> ${LOGNAME}
-echo "Count NOF extract files to include in the manifest file " >> ${LOGNAME}
+echo "Create Manifest file for OPMHI HHA Extract.  " >> ${LOGNAME}
 
-NOF_FILES_4_MANIFEST=`aws s3 ls s3://${S3BUCKET} | grep ${TMSTMP} | wc -l `
+BOX_RECIPIENTS="Jared.S.Wiesner2@usdoj.gov,erica.h.ma@usdoj.gov,lon.leavitt@usdoj.gov,jagadeeshwar.pagidimarri@cms.hhs.gov,monica.algozer@cms.hhs.gov" 
 
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${BOX_RECIPIENTS} 
+
+
+#############################################################
+# Check the status of script
+#############################################################
 RET_STATUS=$?
 
-if [ $RET_STATUS != 0 ]; then
+if [[ $RET_STATUS != 0 ]]; then
 	echo "" >> ${LOGNAME}
-	echo "Error in getting count of extract files to include in manifest file. DOJ_ModernVascular_Ext.sh Failed " >> ${LOGNAME}
-
+	echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
+	
 	# Send Failure email	
-	SUBJECT="Error getting count of extract files for manifest file. DOJ_ModernVascular_Ext.sh Failed ($ENVNAME)"
-	MSG="Error in getting count of extract files to include in manifest file. DOJ_ModernVascular_Ext.sh has failed."
+	SUBJECT="Create Manifest file in OPMHI_HHA_Driver.sh - Failed (${ENVNAME})"
+	MSG="Create Manifest file in OPMHI_HHA_Driver.sh has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
-
 	exit 12
-fi
-
-echo "NOF_FILES_4_MANIFEST=${NOF_FILES_4_MANIFEST}" >> ${LOGNAME}
+fi	
 	
-
-#############################################################
-# Get NOF files for manifest file. Cannot create manifest file 
-#   when there are 0 files.
-#############################################################
-if [ ${NOF_FILES_4_MANIFEST} -gt 0 ];then 
-
-	#############################################################
-	# Create Manifest file
-	#############################################################
-	echo "" >> ${LOGNAME}
-	echo "Create Manifest file for DOJ Modern Vascular Extract.  " >> ${LOGNAME}
-
-	#####################################################
-	# S3BUCKET --> points to location of extract file. 
-	#          --> S3 folder is key token to config file to determine of manifest file is in HOLD status   
-	# TMSTMP   --> uniquely identifies extract file(s) 
-	# ENIGMA_EMAIL_SUCCESS_RECIPIENT --> manifest file recipients
-	#
-	# Ex. CreateManifestFile.sh s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/DOJ/ 20231211.125522 pbaranoski-con@index.com 
-	#####################################################
-	BOX_RECIPIENTS="Jared.S.Wiesner2@usdoj.gov,Emily.Oren@hhs.gov,erica.h.ma@usdoj.gov,adithi.s.grama@usdoj.gov,lon.leavitt@usdoj.gov,jagadeeshwar.pagidimarri@cms.hhs.gov,monica.algozer@cms.hhs.gov" 
-	
-	${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${BOX_RECIPIENTS} 
-			
-	#############################################################
-	# Check the status of script
-	#############################################################
-	RET_STATUS=$?
-
-	if [[ $RET_STATUS != 0 ]]; then
-			echo "" >> ${LOGNAME}
-			echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
-			
-			# Send Failure email	
-			SUBJECT="Create Manifest file in DOJ_ModernVascular_Ext.sh  - Failed ($ENVNAME)"
-			MSG="Create Manifest file in DOJ_ModernVascular_Ext.sh  has failed."
-			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
-
-			exit 12
-	fi	
-fi
-
 
 #############################################################
 # script clean-up

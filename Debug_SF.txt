@@ -1,0 +1,36 @@
+DEV
+=====
+secret_name under log_on is:  /dev/xtr/snowflake
+
+acct_val is  779846826630
+stream_role_arn_prefix under assume_role is:  arn:aws:iam::779846826630:role/
+Current IAM Role ARN: arn:aws:sts::779846826630:assumed-role/bit-enigma-xtr-role/i-0cd98a00906e384fc
+Target IAM Role ARN: arn:aws:sts::779846826630:assumed-role/bit-enigma-xtr-role
+Already in target role: arn:aws:sts::779846826630:assumed-role/bit-enigma-xtr-role/i-0cd98a00906e384fc
+Temporary credentials assigned to environment variables for Already assumed role
+Attempting to get secret  
+Secret assigned to environment variable: MY_APP_SECRET_XTR .
+sf_user='idrc_dev_bia_xtr_etl'
+sf_db=None
+sf_wh=None
+env=None
+privatekey='-----BEGIN PRIVATE KEY-
+
+
+PROD
+====
+secret_name under log_on is:  /prod/xtr/snowflake
+
+acct_val is  203918871088
+stream_role_arn_prefix under assume_role is:  arn:aws:iam::203918871088:role/
+Current IAM Role ARN: arn:aws:sts::203918871088:assumed-role/bit-enigma-xtr-role/i-0c0a94ea71f653e0e
+Target IAM Role ARN: arn:aws:sts::203918871088:assumed-role/bit-enigma-xtr-role
+Already in target role: arn:aws:sts::203918871088:assumed-role/bit-enigma-xtr-role/i-0c0a94ea71f653e0e
+Temporary credentials assigned to environment variables for Already assumed role
+Attempting to get secret  
+Secret assigned to environment variable: MY_APP_SECRET_XTR .
+sf_user='IDRC_prod_BIA_XTR_ETL'
+sf_db=None
+sf_wh=None
+env=None
+privatekey='-----BEGIN PRIVATE KEY

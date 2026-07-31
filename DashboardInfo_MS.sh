@@ -33,6 +33,7 @@
 # Paul Baranoski 2025-04-09 Correct S3 move to archive folder log/email messages to be more accurate.
 # Paul Baranoski 2025-06-18 Exclude GitHub log files from Dashboard processing.
 # Paul Baranoski 2025-07-22 Exclude "PSPS_SF_Table_Load" logs from processing.
+# Paul Baranoski 2025-10-27 Add code to remove 'extract' all lower-case from log filename to create extract Key for Dashboard.
 ############################################################################################################
 
 set +x
@@ -525,6 +526,7 @@ createJobInfoKeyValuePairs() {
 	ext_name=`echo ${ext_name} | sed "s/_Extract//g" `   >> ${LOGNAME}
 	ext_name=`echo ${ext_name} | sed "s/_EXTRACTS//g" `  >> ${LOGNAME}
 	ext_name=`echo ${ext_name} | sed "s/_EXTRACT//g" `   >> ${LOGNAME}
+	ext_name=`echo ${ext_name} | sed "s/_extract//g" `   >> ${LOGNAME}
 	echo "ext_name=${ext_name}" >> ${LOGNAME}
 	
 	runTmpstmp=`echo ${Logfilename} | cut -d_ -f${FLD_POS_TMSTMP}- | sed "s/.log//" `   >> ${LOGNAME}

@@ -11,7 +11,6 @@
 #                           Removed bogus WHERE Clause (not present in production code).
 #                           Added extract filename to email.
 # Paul Baranoski 2023-07-26 Modify extract file extension from .csv to .txt 
-# Paul Baranoski 2025-06-05 Re-work query for clarity. Inspired by Karen Brown.
 ########################################################################################################
 # IMPORTS
 ########################################################################################################
@@ -66,29 +65,7 @@ def Extract_SQL(ENVNAME,TMSTMP):
 			FROM (
 
 
-!!!!! THIS SQL IS NOT READY TO PROMOTE -- DO NOT USE AT THIS TIME!!!!!!!
-
-                    WITH PRVDR_HCIDEA_NPI_INFO AS  (
-
-                     	   -- Get Most recent record
-                          SELECT PRVDR_HCIDEA_HC_ID, PRVDR_HCIDEA_NPI_NUM 
-                            FROM IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_NPI HCINPI
-						   WHERE TO_CHAR(IDR_TRANS_OBSLT_TS, 'YYYY-MM-DD') = '9999-12-31'       
-
-                    )
-                    
-                    ,PRVDR_HCIDEA_STATE_LCNS_INFO AS  (
-
-                           -- Get Most recent record                    
-                           -- This table has 3-part unique key 1) HCILCNS.PRVDR_HCIDEA_HC_ID 2) HCILCNS.PRVDR_HCIDEA_LCNS_STATE_CD, 3) PRVDR_HCIDEA_LCNS_NUM (not mentioned or used 
-                           -- HCILCNS.PRVDR_HCIDEA_HC_ID = 'HDL065GR38' and HCILCNS.PRVDR_HCIDEA_LCNS_STATE_CD = 'CA'
-                          SELECT HCILCNS.PRVDR_HCIDEA_HC_ID, HCILCNS.PRVDR_HCIDEA_LCNS_STATE_CD, MAX(substr(HCILCNS.PRVDR_HCIDEA_EFCTV_PRD, 39, 10) )  AS PRVDR_HCIDEA_EFCTV_PRD
-                            FROM IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_STATE_LCNS HCILCNS
-						   WHERE TO_CHAR(IDR_TRANS_OBSLT_TS, 'YYYY-MM-DD') = '9999-12-31' 
-                                                   
-                    )                    
-
-                   ,PECOS_DTL_INFO as (
+                    WITH PECOS_DTL_INFO as (
                       
                         SELECT
                             RPAD(HCIDEA.PRVDR_HCIDEA_DEA_NUM,20,' ')                        AS DEA_NUM
@@ -113,11 +90,22 @@ def Extract_SQL(ENVNAME,TMSTMP):
 
                         FROM IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_DEA HCIDEA
 
-                        LEFT OUTER JOIN PRVDR_HCIDEA_NPI_INFO HCINPI
+                        LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_NPI HCINPI
                         ON HCIDEA.PRVDR_HCIDEA_HC_ID = HCINPI.PRVDR_HCIDEA_HC_ID
+                        AND CAST(substr(HCINPI.PRVDR_HCIDEA_EFCTV_PRD, 39, 10) AS DATE) = (
+                              SELECT MAX(CAST(substr(HCINPI_A.PRVDR_HCIDEA_EFCTV_PRD, 39, 10) AS DATE))
+                                FROM IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_NPI HCINPI_A
+                               WHERE HCINPI_A.PRVDR_HCIDEA_HC_ID = HCINPI.PRVDR_HCIDEA_HC_ID)
 
-                        LEFT OUTER JOIN IPRVDR_HCIDEA_STATE_LCNS HCILCNS
+                        LEFT OUTER JOIN IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_STATE_LCNS HCILCNS
                         ON HCIDEA.PRVDR_HCIDEA_HC_ID = HCILCNS.PRVDR_HCIDEA_HC_ID
+                        AND CAST(substr(HCILCNS.PRVDR_HCIDEA_EFCTV_PRD, 39, 10) AS DATE) =   (
+                             SELECT MAX(CAST(substr(HCILCNS_A.PRVDR_HCIDEA_EFCTV_PRD, 39, 10) AS DATE))
+                               FROM IDRC_{ENVNAME}.CMS_DIM_PRVDR_{ENVNAME}.PRVDR_HCIDEA_STATE_LCNS HCILCNS_A
+                              WHERE HCILCNS_A.PRVDR_HCIDEA_HC_ID = HCILCNS.PRVDR_HCIDEA_HC_ID
+                                AND HCILCNS_A.PRVDR_HCIDEA_LCNS_STATE_CD
+                                                    = HCILCNS.PRVDR_HCIDEA_LCNS_STATE_CD)
+
                         
                         ORDER BY DEA_NUM, LCNS_ISS_DT, STATE_CD, TRANS_STRT_DT
                       

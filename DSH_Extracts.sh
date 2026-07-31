@@ -42,8 +42,19 @@
 #                           Modify egrep email edit to allow a dash in email before and after the '@'. 
 # Paul Baranoski 2025-05-08 Add call to DSH_AddReqEmails.py to capture DSH Requestor-UNIQ-ID and Requestor-Email into SF table.
 # Paul Baranoski 2025-08-13 Modify success email verbiage to say request is in-process and not complete, and files will be available once they receive an email with a link to their Box account.
+# Paul Baranoski 2026-03-11 Modify to add TESTING functionality.
 ######################################################################################
 set +x
+
+#############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+swInTESTMode=${TESTING}
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 #############################################################
 # Establish log file  
@@ -53,7 +64,7 @@ TMSTMP=`date +%Y%m%d.%H%M%S`
 # Export TMSTMP variable for child scripts
 export TMSTMP 
 
-LOGNAME=/app/IDRC/XTR/CMS/logs/DSH_Extracts_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}DSH_Extracts_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -67,7 +78,6 @@ echo "" >> ${LOGNAME}
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
 
 LOGDIR=${LOG_PATH}/
 
@@ -105,7 +115,7 @@ function archiveRequestFile() {
 		echo "Moving S3 DSH Finder file to S3 archive folder failed." >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="DSH Extract - Failed ($ENVNAME)"
+		SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Moving S3 Finder file to S3 archive folder failed.  ( ${FINDER_FILE_BUCKET}${S3Filename} to ${FINDER_FILE_BUCKET}archive/${S3Filename} )"
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -161,7 +171,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Counting NOF S3 DSH Finder files in s3://${FINDER_FILE_BUCKET}${PREFIX} failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="DSH Extract - Failed ($ENVNAME)"
+	SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Counting NOF S3 DSH Finder files in s3://${FINDER_FILE_BUCKET}${PREFIX} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -179,7 +189,7 @@ if [ ${NOF_FILES} -eq 0 ];then
 	echo "There are no S3 DSH Finder files to process in s3://${FINDER_FILE_BUCKET}${PREFIX}." >> ${LOGNAME}
 	
 	# Send Info email	
-	SUBJECT="DSH Extract ended - nothing to process ($ENVNAME)"
+	SUBJECT="DSH Extract ended - nothing to process (${ENVNAME}${TESTEMAIL})"
 	MSG="There are no S3 DSH Finder files to process in s3://${FINDER_FILE_BUCKET}${PREFIX}."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -223,7 +233,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Counting NOF S3 DSH Finder files in s3://${FINDER_FILE_BUCKET}${PREFIX} failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="DSH Extract - Failed ($ENVNAME)"
+	SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Counting NOF S3 DSH Finder files in s3://${FINDER_FILE_BUCKET}${PREFIX} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -273,7 +283,7 @@ do
 		echo "Request file ${FF} has incorrect file extension. File cannot be processed. " >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="DSH Extract - Failed ($ENVNAME)"
+		SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Request file ${FF} has incorrect file extension. File cannot be processed. Please correct and re-submit file as csv file."
 		
 		echo "DSH_EMAIL_BCC=${DSH_EMAIL_BCC}" >> ${LOGNAME}
@@ -301,7 +311,7 @@ do
 		echo "Request file ${FF} is named incorrectly. " >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="DSH Extract - Failed ($ENVNAME)"
+		SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Request file ${FF} is named incorrectly. Please ensure that filename follows this pattern: DSH_REQUEST_{UNIQ-ID}_YYYYMMDD.csv. {UNIQ-ID} can only contain letters, numbers, and dash. Please correct and re-submit file with proper filename."
 		
 		echo "DSH_EMAIL_BCC=${DSH_EMAIL_BCC}" >> ${LOGNAME}
@@ -348,7 +358,7 @@ do
 		echo "Copying S3 Finder File s3://${FINDER_FILE_BUCKET}${FF} to ${DATADIR}${FF} failed." >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="DSH Extract - Failed ($ENVNAME)"
+		SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Copying S3 Finder File s3://${FINDER_FILE_BUCKET}${FF} to linux datadir failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -417,7 +427,7 @@ do
 			echo "Request file ${FF} has incorrectly formatted records. Incorrect number of fields ${NOF_FLDS} found instead of 4. " >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Request file ${FF} has incorrectly formatted records. ($ENVNAME)"
+			SUBJECT="Request file ${FF} has incorrectly formatted records. (${ENVNAME}${TESTEMAIL})"
 			MSG="Request file ${FF} has incorrectly formatted records. Incorrect NOF fields ${NOF_FLDS} instead of 4. Request file has been rejected. Please correct and re-submit file."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${DSH_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -461,7 +471,7 @@ do
 			echo "Request file ${FF} has blank/empty email address. " >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Request file ${FF} has blank/empty email address. ($ENVNAME)"
+			SUBJECT="Request file ${FF} has blank/empty email address. (${ENVNAME}${TESTEMAIL})"
 			MSG="Request file ${FF} has blank/empty email address. File cannot be processed. Please correct and re-submit file."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${DSH_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -478,7 +488,7 @@ do
 				echo "Request file ${FF} has invalid email address: ${REQSTR_EMAIL} " >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Request file ${FF} has invalid email address. ($ENVNAME). "
+				SUBJECT="Request file ${FF} has invalid email address. (${ENVNAME}${TESTEMAIL}). "
 				MSG="Request file ${FF} has invalid email address: ${REQSTR_EMAIL}. File cannot be processed. Please correct and re-submit file."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${DSH_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1	
 
@@ -489,9 +499,17 @@ do
 				break	
 			
 			else
-				# Set the email recipients who will receive the request emails
-				RQST_EMAIL_RECIPIENT="${DSH_EMAIL_SUCCESS_RECIPIENT},${REQSTR_EMAIL}"
-				echo "RQST_EMAIL_RECIPIENT=${RQST_EMAIL_RECIPIENT}"  >> ${LOGNAME}			
+				echo "swInTESTMode=${swInTESTMode}" >> ${LOGNAME}	
+
+				if [ "${swInTESTMode}" = "Y" ];then
+					RQST_EMAIL_RECIPIENT="${DSH_EMAIL_SUCCESS_RECIPIENT}"
+				else
+					# Set the email recipients who will receive the request emails
+					RQST_EMAIL_RECIPIENT="${DSH_EMAIL_SUCCESS_RECIPIENT},${REQSTR_EMAIL}"
+					echo "RQST_EMAIL_RECIPIENT=${RQST_EMAIL_RECIPIENT}"  >> ${LOGNAME}	
+				fi	
+				
+				echo "RQST_EMAIL_RECIPIENT=${RQST_EMAIL_RECIPIENT}"  >> ${LOGNAME}
 			fi
 		fi
 
@@ -526,7 +544,7 @@ do
 				echo "Incorrectly formatted record found. Invalid date for 'From FY Date': ${FROM_FY_DT}" >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Request file ${FF} has incorrectly formatted records. ($ENVNAME)"
+				SUBJECT="Request file ${FF} has incorrectly formatted records. (${ENVNAME}${TESTEMAIL})"
 				MSG="Incorrectly formatted record found. Invalid date for 'From FY Date': ${FROM_FY_DT}. Request file cannot be processed. Please correct and re-submit file."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RQST_EMAIL_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -567,7 +585,7 @@ do
 				echo "Incorrectly formatted record found. Invalid date for 'To FY Date': ${TO_FY_DT}" >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Request file ${FF} has incorrectly formatted records. ($ENVNAME)"
+				SUBJECT="Request file ${FF} has incorrectly formatted records. (${ENVNAME}${TESTEMAIL})"
 				MSG="Incorrectly formatted record found. Invalid date for 'To FY Date': ${TO_FY_DT}. Request file cannot be processed. Please correct and re-submit file."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RQST_EMAIL_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -638,7 +656,7 @@ do
 			echo "Shell script DSH_Extracts.py failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Python script DSH_Extracts.py - Failed ($ENVNAME)"
+			SUBJECT="Python script DSH_Extracts.py - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Python script DSH_Extracts.py  has failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -704,7 +722,7 @@ do
 			echo "Send success email." >> ${LOGNAME}
 
 			# Send Success email	
-			SUBJECT="DSH Extract - completed ($ENVNAME)"
+			SUBJECT="DSH Extract - completed (${ENVNAME}${TESTEMAIL})"
 			MSG="DSH Extract completed for request file ${FF}. \n\nThe following extract files were processed:\n\n${S3Files}\n\nNo manifest file was created.\n\nPlease note that DSH data is calculated by the federal government fiscal year which goes from October 1 from the prior year, through September 30 of the current year. Example: Fiscal year 2021 is from 10/1/2020 through 9/30/2021."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RQST_EMAIL_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -713,7 +731,7 @@ do
 				echo "Error in calling sendEmail.py" >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Sending Success email in DSH_Extract.sh  - Failed (${ENVNAME})"
+				SUBJECT="Sending Success email in DSH_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 				MSG="Sending Success email in DSH_Extract.sh has failed."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -735,7 +753,13 @@ do
 			if [ "${REQSTR_EMAIL}" = "" ];then
 				BOX_RECIPIENT="${DSH_BOX_RECIPIENT}"
 			else
-				BOX_RECIPIENT="${REQSTR_EMAIL},${DSH_BOX_RECIPIENT}"
+				echo "swInTESTMode=${swInTESTMode}" >> ${LOGNAME}	
+
+				if [ "${swInTESTMode}" = "Y" ];then
+					BOX_RECIPIENT="${DSH_BOX_RECIPIENT}"
+				else
+					BOX_RECIPIENT="${REQSTR_EMAIL},${DSH_BOX_RECIPIENT}"
+				fi
 			fi 
 			
 			echo "BOX_RECIPIENT=${BOX_RECIPIENT}" >> ${LOGNAME}
@@ -752,7 +776,7 @@ do
 				echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Create Manifest file in DSH_Extracts.sh  - Failed ($ENVNAME)"
+				SUBJECT="Create Manifest file in DSH_Extracts.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 				MSG="Create Manifest file in DSH_Extracts.sh  has failed."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -767,7 +791,7 @@ do
 			echo "Send success email." >> ${LOGNAME}
 
 			# Send Success email	
-			SUBJECT="DSH Extract - In-Process ($ENVNAME)"
+			SUBJECT="DSH Extract - In-Process (${ENVNAME}${TESTEMAIL})"
 			MSG="DSH Extract in process for request file ${FF}. \n\nThe following extract files were created:\n\n${S3Files}\n\nOnce the process is complete and the file(s) are available, you will receive an email from data.request@datainsights.cms.gov with a link to the file location in your Box account.\n\nThe manifest file is DSH_EXTRACT_Manifest_${FF_TMSTMP}.json\n\nPlease note that DSH data is calculated by the federal government fiscal year which goes from October 1 from the prior year, through September 30 of the current year. Example: Fiscal year 2021 is from 10/1/2020 through 9/30/2021."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RQST_EMAIL_RECIPIENT}" "${SUBJECT}" "${MSG}" "${DSH_EMAIL_BCC}" "${DSH_EMAIL_REPLY_MSG}" >> ${LOGNAME} 2>&1
 
@@ -776,7 +800,7 @@ do
 				echo "Error in calling sendEmail.py" >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="Sending Success email in DSH_Extract.sh  - Failed (${ENVNAME})"
+				SUBJECT="Sending Success email in DSH_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 				MSG="Sending Success email in DSH_Extract.sh has failed."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -787,22 +811,22 @@ do
 			#############################################################
 			# Insert new Requestor Emails into DSH_EMAIL table.
 			#############################################################
-			echo "" >> ${LOGNAME}
-			echo "Insert new DSH Requestor Email Address for Requestor UNIQ-ID" >> ${LOGNAME}
+			#echo "" >> ${LOGNAME}
+			#echo "Insert new DSH Requestor Email Address for Requestor UNIQ-ID" >> ${LOGNAME}
 	
-			${PYTHON_COMMAND} ${RUNDIR}DSH_AddReqEmails.py --ReqID "${FF_ID_NODE}" --Email "${REQSTR_EMAIL}"  >> ${LOGNAME} 2>&1
+			#${PYTHON_COMMAND} ${RUNDIR}DSH_AddReqEmails.py --ReqID "${FF_ID_NODE}" --Email "${REQSTR_EMAIL}"  >> ${LOGNAME} 2>&1
 
-			if [[ $RET_STATUS != 0 ]]; then
-				echo "" >> ${LOGNAME}
-				echo "Error in calling sendEmail.py" >> ${LOGNAME}
+			#if [[ $RET_STATUS != 0 ]]; then
+			#	echo "" >> ${LOGNAME}
+			#	echo "Error in calling sendEmail.py" >> ${LOGNAME}
 				
-				# Send Failure email	
-				SUBJECT="Insert new DSH Requestor Email Address into DSH_EMail table in DSH_Extract.sh - Failed (${ENVNAME})"
-				MSG="Insert new DSH Requestor Email Address into DSH_EMail table in DSH_Extract.sh has failed."
-				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
-
-				exit 12
-			fi	
+			#	# Send Failure email	
+			#	SUBJECT="Insert new DSH Requestor Email Address into DSH_EMail table in DSH_Extract.sh - Failed (${ENVNAME}${TESTEMAIL})"
+			#	MSG="Insert new DSH Requestor Email Address into DSH_EMail table in DSH_Extract.sh has failed."
+			#	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+			#
+			#	exit 12
+			#fi	
 
 		fi
 	
@@ -824,7 +848,7 @@ do
 		echo "Moving S3 DSH Finder file to S3 archive folder failed." >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="DSH Extract - Failed ($ENVNAME)"
+		SUBJECT="DSH Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Moving S3 Finder file to S3 archive folder failed.  ( ${FINDER_FILE_BUCKET}${S3Filename} to ${FINDER_FILE_BUCKET}archive/${S3Filename} )"
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

@@ -12,6 +12,8 @@
 # Created: Paul Baranoski
 #
 # Paul Baranoski 2025-04-07 Created script.
+# Paul Baranoski 2025-11-21 Add ContentType parameter in put_object call.
+# Paul Baranoski 2026-03-31 Changed formatting of some strings to use formatted strings instead of '+' to append strings together. 
 ########################################################################################################
 
 import boto3 
@@ -127,7 +129,7 @@ def processSFUIFiles4Dashboard(folder_n_file_prefix, FromDt, ToDt, JobDtlPathNFi
             
             # Build bogus logname
             # Ex. "DOJ_SFUI_TOUHY_NOLOG_20240101.080201.log"  or "DOJ_TOUHY_MICHAEL_NO_LOG_20240101.080201.log"
-            ext_logname = ext_filename_1st_3_nodes + "_NOLOG_" + ext_tmpstmp + ".log"
+            ext_logname = f"{ext_filename_1st_3_nodes}_NOLOG_{ext_tmpstmp}.log"
 
             # Get Storage Class
             ext_StorClass = SFUI_File['StorClass']
@@ -212,14 +214,14 @@ def processSFUIFiles4Dashboard(folder_n_file_prefix, FromDt, ToDt, JobDtlPathNFi
         print("")
         print(f"Before put_object for {JobDtlPathNFilename} ")  
 
-        s3_client.put_object(Bucket=bucketname, Key=JobDtlPathNFilename, Body=sJOBDTLS_Recs)
+        s3_client.put_object(Bucket=bucketname, Key=JobDtlPathNFilename, Body=sJOBDTLS_Recs, ContentType="application/json")
 
         ###############################################################
         # Write Dashboard JobINFO json records into S3 file.
         ###############################################################
         print(f"Before put_object for {JobInfoPathNFilename} ")  
 
-        s3_client.put_object(Bucket=bucketname, Key=JobInfoPathNFilename, Body=sJOBINFO_Recs)
+        s3_client.put_object(Bucket=bucketname, Key=JobInfoPathNFilename, Body=sJOBINFO_Recs, ContentType="application/json")
  
 
     except Exception as e:  
@@ -493,7 +495,7 @@ if __name__ == "__main__":
         print(f"{bucketNHLFldr=}")
 
         # Ex. 'xtr/Dashboard/'  or  'xtr/DEV/Dashboard/'
-        S3DashboardFldr = bucketNHLFldr + f"/Dashboard/"
+        S3DashboardFldr =   f"{bucketNHLFldr}/Dashboard/"
         print(f"{S3DashboardFldr=}")
 
         #  xtr/DOJ/DOJ_TOUHY--> DOJ_TOUHY --> array index is 0 based, so must subtract one 
@@ -505,8 +507,8 @@ if __name__ == "__main__":
         # Create Dashboard S3 output files
         ####################################################################
         # Ex. xtr/Dashboard/DASHBOARD_JOB_DTLS_EXTRACT_FILES_{TMSTMP}.json    
-        JobDtlPathNFilename =  S3DashboardFldr + f"DASHBOARD_JOB_DTLS_EXTRACT_FILES_{TMSTMP}.json" 
-        JobInfoPathNFilename =  S3DashboardFldr + f"DASHBOARD_JOB_INFO_{TMSTMP}.json" 
+        JobDtlPathNFilename =  f"{S3DashboardFldr}DASHBOARD_JOB_DTLS_EXTRACT_FILES_{TMSTMP}.json" 
+        JobInfoPathNFilename =  f"{S3DashboardFldr}DASHBOARD_JOB_INFO_{TMSTMP}.json" 
 
         ####################################################################
         # Process S3 SF UI Files

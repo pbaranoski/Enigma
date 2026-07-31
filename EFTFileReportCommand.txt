@@ -1,0 +1,92 @@
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts" --prefix xtr/EFT_Files \
+    --query "Contents[?LastModified>=\`2026-02-28T00:00:00\` && LastModified<=\`2026-03-06T23:59:59\`]" > EFT_Results.txt
+
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts" --prefix xtr/EFT_Files/P#EFT.ON --query "Contents[?LastModified>=\`2026-02-28T00:00:00\` && LastModified<=\`2026-03-06T23:59:59\`]" > EFT_Results.txt
+
+
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts" --query "Contents[?LastModified>=\`2026-04-20T00:00:00\` && LastModified<=\`2026-04-20T23:59:59\`]" > EFT_Results.txt
+
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod" --query "Contents[?LastModified>=\`2026-04-17T00:00:00\` && LastModified<=\`2026-04-21T23:59:59\`]" > EFT_Results.txt
+
+
+
+	
+
+aws s3 ls s3://${S3Bucket}/${S3Folder}${S3FilePrefix} | awk '{print $4}' | egrep "_[0-9]{1,2}_[0-9]{1,2}_[0-9]{1,2}\." > ${DATADIR}S3PartsTemp_${TMSTMP}.txt   2>> ${LOGNAME} 
+
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts" --prefix xtr/DSH/DSH_EXTRACT --query "Contents[?LastModified>=\`2026-03-01T00:00:00\` && LastModified<=\`2026-03-31T23:59:59\`]" > DSH_Concern.txt
+
+
+prefix = "blbtn_drug_ext_20260317.121300.txt.gz"
+"blbtn_drug_ext_20260317.121300.txt.gz_0_0_0.gz"
+
+
+
+for dictEntry in dictResults:
+	sKey = dictEntry["Key"]
+	sLastModified = dictEntry["LastModified"]
+	sSize = dictEntry["Size"]
+	
+	#Extract filename from sKey 
+	
+more EFT_Results.txt
+[
+    {
+        "Key": "xtr/EFT_Files/P#EFT.ON.DEAPECOS.D260302.T1700061",
+        "LastModified": "2026-03-02T22:01:50+00:00",
+        "ETag": "\"9d28e21b0c2deef97798694f008f667b-190\"",
+        "ChecksumAlgorithm": [
+            "CRC64NVME"
+        ],
+        "Size": 1588778479,
+        "StorageClass": "STANDARD"
+    },
+    {
+        "Key": "xtr/EFT_Files/P#EFT.ON.GWA.IDRPD.R260227.D260302.T0800061",
+        "LastModified": "2026-03-02T13:01:21+00:00",
+        "ETag": "\"f6bd576059536a13a5a6ffd655e152d8\"",
+        "ChecksumAlgorithm": [
+            "CRC64NVME"
+        ],
+        "Size": 71918,
+        "StorageClass": "STANDARD"
+    },
+    {
+        "Key": "xtr/EFT_Files_Archive/P#EFT.ON.DEAPECOS.D260302.T1700061",
+        "LastModified": "2026-03-02T22:01:58+00:00",
+        "ETag": "\"1e6e8394db5c6e94cf8514fa858af9cc\"",
+        "ChecksumAlgorithm": [
+            "CRC64NVME"
+        ],
+        "Size": 1588778479,
+        "StorageClass": "STANDARD"
+    },
+    {
+        "Key": "xtr/EFT_Files_Archive/P#EFT.ON.GWA.IDRPD.R260227.D260302.T0800061",
+        "LastModified": "2026-03-02T13:01:24+00:00",
+        "ETag": "\"f6bd576059536a13a5a6ffd655e152d8\"",
+        "ChecksumAlgorithm": [
+            "CRC64NVME"
+        ],
+        "Size": 71918,
+        "StorageClass": "STANDARD"
+    }
+]
+	
+
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/manifest_files_archive/
+
+aws s3api list-objects-v2 --bucket "aws-hhs-cms-eadg-bia-ddom-extracts" --prefix xtr/manifest_files_archive/OFM --query "Contents[?LastModified>=\`2025-01-01T00:00:00\` && LastModified<=\`2025-10-28T23:59:59\`]" > OFM_issue.txt
+
+
+P#EFT.ON.OPT.EARLY.Y24JANW2.D260327.T0949481 
+P#IDR.XTR.ENC.SAF.OPT.EARLY.Y24JANW2 19,297,737
+
+SAFENC_OPT_EARLY_Y24JANW2_20260327.094948.txt.gz     19,297,737
+
+SAFENC_OPT_EARLY_Y24JANW1_20260327.094948.txt.gz     15,909,337
+SAFENC_OPT_EARLY_Y24JANW2_20260327.094948.txt.gz     19,297,737
+SAFENC_OPT_EARLY_Y24JANW3_20260327.094948.txt.gz     17,435,320
+SAFENC_OPT_EARLY_Y24JANW4_20260327.094948.txt.gz     46,412,565
+
+

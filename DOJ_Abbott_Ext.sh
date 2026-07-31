@@ -9,7 +9,8 @@
 #
 # Modified:
 #
-# Viren Khanna 2024-03-28 Create script
+# Viren Khanna   2024-03-28 Create script
+# Paul Baranoski 2025-08-29 Remove references to createManifestFileFunc.sh which is now obsolete.
 ############################################################################################################
 
 set +x
@@ -109,6 +110,7 @@ sed -i 's/\r//g' ${ParmFile2Process}  2>> ${LOGNAME}
 NOF_EXT_FILES_PER_MANIFEST=1
 setMaxFiles2Manifest ${NOF_EXT_FILES_PER_MANIFEST}
 
+EXTRACT_FILE_TMSTMP=${TMSTMP}
 
 while read PARM_REC
 do
@@ -283,8 +285,8 @@ do
 				exit 12
 		fi	
 
-		PARTIAL_MANIFEST_FILE_ALLOWED="N"		
-		createManifestFileFunc ${DOJ_ABBOTT_BOX_RECIPIENT}  ${PARTIAL_MANIFEST_FILE_ALLOWED}
+####		PARTIAL_MANIFEST_FILE_ALLOWED="N"		
+#####		createManifestFileFunc ${DOJ_ABBOTT_BOX_RECIPIENT}  ${PARTIAL_MANIFEST_FILE_ALLOWED}
 
 
 done <  ${ParmFile2Process}
@@ -293,8 +295,8 @@ done <  ${ParmFile2Process}
 #############################################################
 # Create manifest file for last files processed.
 #############################################################
-PARTIAL_MANIFEST_FILE_ALLOWED="Y"		
-createManifestFileFunc ${DOJ_ABBOTT_BOX_RECIPIENT}  ${PARTIAL_MANIFEST_FILE_ALLOWED}
+####PARTIAL_MANIFEST_FILE_ALLOWED="Y"		
+###createManifestFileFunc ${DOJ_ABBOTT_BOX_RECIPIENT}  ${PARTIAL_MANIFEST_FILE_ALLOWED}
 
 	
 #############################################################
@@ -330,6 +332,15 @@ if [[ $RET_STATUS != 0 ]]; then
 
 		exit 12
 fi	
+
+
+#############################################################
+# Create Manifest file
+#############################################################
+echo "" >> ${LOGNAME}
+echo "Create Manifest file for DOJ_Abbott Extact.  " >> ${LOGNAME}
+
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${DOJ_ABBOTT_BOX_RECIPIENT} 
 
 
 #############################################################

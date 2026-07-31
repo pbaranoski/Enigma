@@ -1,3 +1,5 @@
+COPY INTO @BIA_PRD.CMS_STAGE_XTR_PRD.BIA_PRD_XTR_DOJ_STG/DOJ_SFUI_REQ102_EYLEA_PTB_CAR_20260108.120000.txt.gz FROM (
+
           SELECT 
                'START'
               ,C.CLM_TYPE_CD
@@ -26,7 +28,7 @@
               ,RPAD(REPLACE(COALESCE(C.BENE_SEX_CD,''),'~',''),1,' ') AS BENE_SEX_CD
               ,RPAD(REPLACE(COALESCE(CDN.BENE_RACE_CD,''),'~',''),2,' ') AS BENE_RACE_CD
               
-              ,RPAD(COALESCE(TO_CHAR(BENE.BENE_BRTH_DT, 'YYYYMMDD'),''),8,' ') AS CLM_PTNT_BIRTH_DT
+              ,RPAD(COALESCE(TO_CHAR(B.BENE_BRTH_DT, 'YYYYMMDD'),''),8,' ') AS BENE_BIRTH_DT
               
               ,RPAD(COALESCE(CDN.CLM_CWF_BENE_MDCR_STUS_CD,''),2,' ') AS CLM_CWF_BENE_MDCR_STUS_CD
               
@@ -163,6 +165,14 @@
 
              ,C.CLM_FINL_ACTN_IND
              ,RPAD(COALESCE(C.CLM_BENE_MBI_ID,''),11,' ') AS BENE_MBI_ID
+			 
+			 ,CASE WHEN SUBSTR (CLM_CNTL_NUM,3,2) IN ('01','03','04','06','07','08','12','14','15','16','17','21','24','25','26','27','31','34','35','36','37') 
+				   THEN 'P'
+				   WHEN SUBSTR (CLM_CNTL_NUM,3,2) IN ('02','09','10','11','18','19','22','28','29','32','38','39')
+                   THEN 'X'
+				   ELSE ' '
+			  END AS CLM_SUBMTR_FORM_IND	   
+			 			 
              ,'END'
 			 
                 FROM IDRC_PRD.CMS_FCT_CLM_PRD.CLM C
@@ -212,8 +222,18 @@
                     AND C.CLM_TYPE_CD     = CP.CLM_TYPE_CD
                     AND C.CLM_NUM_SK      = CP.CLM_NUM_SK
 
+		-- Separate queries for Carrier vs DME
+		--WHERE C.CLM_TYPE_CD IN (71,72,81,82)
+		WHERE C.CLM_TYPE_CD IN (71,72)
+		AND C.CLM_FINL_ACTN_IND = 'Y'
+		AND CL.CLM_LINE_FROM_DT BETWEEN TO_DATE('2013-01-01','YYYY-MM-DD') AND TO_DATE('2014-12-31','YYYY-MM-DD')
 
-      WHERE C.CLM_TYPE_CD IN (71,72,81,82)
-        AND C.CLM_FINL_ACTN_IND = 'Y'
-        AND C.CLM_FROM_DT BETWEEN TO_DATE('{FROM_DT}','YYYY-MM-DD') AND TO_DATE('{THRU_DT}','YYYY-MM-DD')
+		AND (   CL.CLM_LINE_HCPCS_CD IN ('Q2046 ','J0178')
+		OR CL.CLM_LINE_NDC_CD IN ('61755000501','61755000502','61755000554','61755000555'))
                  
+
+)
+
+		   FILE_FORMAT = (TYPE = CSV field_delimiter = "|"  ESCAPE_UNENCLOSED_FIELD=NONE FIELD_OPTIONALLY_ENCLOSED_BY = none )
+			SINGLE=TRUE  max_file_size=5368709120         
+
