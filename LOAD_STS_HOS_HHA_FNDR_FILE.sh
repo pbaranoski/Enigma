@@ -12,10 +12,18 @@
 set +x
 
 #############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/LOAD_STS_HOS_HHA_FNDR_FILE_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}LOAD_STS_HOS_HHA_FNDR_FILE_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -30,8 +38,6 @@ echo "" >> ${LOGNAME}
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh
-
 S3BUCKET=${FINDER_FILE_BUCKET} 
 PREFIX=POS_File_iQIES
 
@@ -62,10 +68,10 @@ RET_STATUS=$?
 
 if [[ $RET_STATUS != 0 ]]; then
 	echo "" >> ${LOGNAME}
-	echo "Listing S3 files from ${S3BUCKET}${PREFIX} failed (${ENVNAME})." >> ${LOGNAME}
+	echo "Listing S3 files from ${S3BUCKET}${PREFIX} failed (${ENVNAME}${TESTEMAIL})." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME})"
+	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Listing Finder Files in S3 from ${S3BUCKET}${PREFIX} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -84,7 +90,7 @@ if [ ${NOF_FILES} -eq 0 ]; then
 	echo "No Finder files found in ${S3BUCKET}${PREFIX}." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME}) "
+	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME}${TESTEMAIL}) "
 	MSG="No Finder Files found in ${S3BUCKET}${PREFIX}."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -96,7 +102,7 @@ elif [ ${NOF_FILES} -gt 1 ]; then
 	echo "More than one Finder files found in ${S3BUCKET}${PREFIX}." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME}) "
+	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh script - Failed (${ENVNAME}${TESTEMAIL}) "
 	MSG="More than one Finder Files found in ${S3BUCKET}${PREFIX}."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -130,7 +136,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Copying S3 STS HOS HHA Finder file to Linux failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME})"
+	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Copying S3 file from ${S3BUCKET} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -170,7 +176,7 @@ if [[ $RET_STATUS != 0 ]]; then
         echo "Python script LOAD_STS_HOS_HHA_FNDR_FILE.py failed" >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME})"
+		SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="STS HOA HHA loading finder file has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -197,7 +203,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Copying S3 STS HOA HHA Finder file to Linux failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME})"
+	SUBJECT="LOAD_STS_HOS_HHA_FNDR_FILE.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Copying S3 file from ${S3BUCKET} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

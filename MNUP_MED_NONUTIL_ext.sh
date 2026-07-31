@@ -22,15 +22,24 @@
 # Paul Baranoski 2024-01-16 Change SFTP_FILES constant to SSA_RESP_BUCKET. Added additional documentation. Modified code for call the CreateManifestFile.sh
 # Paul Baranoski 2024-03-22 Add call to LOAD_MNUP_FNDR_FILE.sh (So we can obsolete MNUP_Extract_Driver.sh
 # Paul Baranoski 2024-07-11 Modified EFT_TMSTMP to pass to CreateConfigFile to be in format R${YYMMDD}.T${HHMMSS}
+# Paul Baranoski 2026-06-25 Modify to Add "TESTING" functionality.
 ############################################################################################################
 
 set +x
 
 #############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/MNUP_MED_NONUTIL_ext_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}MNUP_MED_NONUTIL_ext_${TMSTMP}.log
 EFT_LOGNAME=/app/IDRC/XTR/CMS/logs/ProcessFiles2EFT_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
@@ -82,7 +91,7 @@ if [[ $RET_STATUS != 0 ]]; then
         echo "LOAD_MNUP_FNDR_FILE.sh failed" >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="LOAD_MNUP_FNDR_FILE.sh  - Failed (${ENVNAME})"
+		SUBJECT="LOAD_MNUP_FNDR_FILE.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="LOAD_MNUP_FNDR_FILE.sh has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -128,7 +137,7 @@ if [[ $RET_STATUS != 0 ]]; then
         echo "Python script MNUP_MED_NONUTIL_ext.py failed" >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME}) "
+		SUBJECT="MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME}${TESTEMAIL}) "
 		MSG="MNUP Extracting Bene Info has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -194,7 +203,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="Annual MNUP extract (${ENVNAME})" 
+SUBJECT="Annual MNUP extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Medicare Non-Usage (MNUP) annual extract file has been created.\n\nAn SFTP version of the below file was created as ${SFTP_FILENAME}.\n\nThe following file was created:\n\n${S3Files}"
 
 
@@ -205,7 +214,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		echo "Error in calling sendEmail.py" >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="Sending Success email in MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME})"
+		SUBJECT="Sending Success email in MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Sending Success email in MNUP_MED_NONUTIL_ext.sh  has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -228,7 +237,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Get MNUP Finder File filename from ${FINDER_FILE_SSA_BUCKET}${PREFIX} failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="LOAD_MNUP_FNDR_FILE.sh script - Failed (${ENVNAME})"
+	SUBJECT="LOAD_MNUP_FNDR_FILE.sh script - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Get MNUP Finder File filename in S3 from ${FINDER_FILE_SSA_BUCKET}${PREFIX} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -254,7 +263,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Moving S3 MNUP Finder file ${MNUP_FINDER_FILE} to S3 archive folder." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME})"
+	SUBJECT="MNUP_MED_NONUTIL_ext.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Moving S3 file ${MNUP_FINDER_FILE} to s3 folder ${FINDER_FILE_BUCKET}archive failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -296,7 +305,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Shell script CreateManifestSFTPFile.sh failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="Create Manifest file in MNUP_MED_NONUTIL_ext.sh - Failed (${ENVNAME})"
+	SUBJECT="Create Manifest file in MNUP_MED_NONUTIL_ext.sh - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Create Manifest file in MNUP_MED_NONUTIL_ext.sh has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${MNUP_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

@@ -15,6 +15,8 @@
 # 10/12/2023   Paul Baranoski       Remove code to pass additional parameter. This logic will be handled 
 #                                   within CreateManifestFile.sh using a Manifest Configuration file.
 # 08/02/2024   Paul Baranoski       Add ENV to Subject line for emails.
+# 10/30/2025   Paul Baranoski       OPMHI_EMAIL_SUCCESS_RECIPIENT to OPMHI_BOX_RECIPIENT.
+#                                   Change ENIGMA_EMAIL_FAILURE_RECIPIENT to ENIGMA_EMAIL_FAILURE_RECIPIENT. 
 ############################################################################################################
 set +x
 #################################################################################
@@ -142,7 +144,7 @@ if [[ $RET_STATUS != 0 ]]; then
         # Send Failure email	
         SUBJECT="OPMHI_SNF_Driver.sh - Failed (${ENVNAME})"
         MSG="OPM-HI SNF extract has failed."
-        ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+        ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
         exit 12
 fi
@@ -167,7 +169,7 @@ if [ $RET_STATUS != 0 ]; then
          # Send Failure email	
          SUBJECT="OPMHI_SNF_Driver.sh - Failed (${ENVNAME})"
          MSG="CombineS3Files.sh for OPM-HI PTB SNF has failed."
-         ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+         ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
          exit 12
 fi
@@ -192,7 +194,7 @@ echo "S3Files=${S3Files} "   >> ${LOGNAME}
 SUBJECT="OPMHI_SNF_Driver.sh  - Completed (${ENVNAME})"
 MSG="OPM-HI PTA SNF has completed successfully.\n\nThe following file(s) were created:\n\n${S3Files}"
 
-${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OPMHI_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 RET_STATUS=$?
 
@@ -203,7 +205,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		# Send Failure email	
 		SUBJECT="Sending Success email in OPMHI_SNF_Driver.sh - Failed (${ENVNAME})"
 		MSG="Sending Success email in OPMHI_SNF_Driver.sh  has failed."
-		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 		exit 12
 fi
@@ -215,7 +217,7 @@ fi
 echo "" >> ${LOGNAME}
 echo "Create Manifest file for OPMHI SNF Extract.  " >> ${LOGNAME}
 
-${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${CUR_DT} ${OPMHI_EMAIL_SUCCESS_RECIPIENT} 
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${CUR_DT} ${OPMHI_BOX_RECIPIENT} 
 
 
 #############################################################
@@ -230,7 +232,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	# Send Failure email	
 	SUBJECT="Create Manifest file in OPMHI_SNF_Driver.sh - Failed (${ENVNAME})"
 	MSG="Create Manifest file in OPMHI_SNF_Driver.sh has failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi	

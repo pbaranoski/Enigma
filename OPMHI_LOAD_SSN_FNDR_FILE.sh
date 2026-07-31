@@ -9,6 +9,9 @@
 #
 # Paul Baranoski 2023-10-14 Uncomment logic to move finder file to 23://Finder_Files/archive folder.
 # Paul Baranoski 2024-08-02 Add ENV to Subject line for emails.
+# Paul Baranoski 2025-10-30 Change OPMHI_EMAIL_SUCCESS_RECIPIENT to OPMHI_BOX_RECIPIENT.
+#                           Change OPMHI_EMAIL_FAILURE_RECIPIENT to ENIGMA_EMAIL_FAILURE_RECIPIENT. 
+#                           Change OPMHI_EMAIL_SUCCESS_RECIPIENT to ENIGMA_EMAIL_SUCCESS_RECIPIENT.
 ############################################################################################################
 
 set +x
@@ -59,7 +62,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	# Send Failure email	
 	SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh script - Failed (${ENVNAME})"
 	MSG="Listing Finder Files in S3 from ${S3BUCKET}${PREFIX} failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi
@@ -77,7 +80,7 @@ if [ ${NOF_FILES} -eq 0 ]; then
 	# Send Failure email	
 	SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh script - Failed (${ENVNAME})"
 	MSG="No Finder Files found in ${S3BUCKET}${PREFIX}."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 0
 	
@@ -89,7 +92,7 @@ elif [ ${NOF_FILES} -gt 1 ]; then
 	# Send Failure email	
 	SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh script - Failed (${ENVNAME})"
 	MSG="More than one Finder Files found in ${S3BUCKET}${PREFIX}."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi
@@ -118,7 +121,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	# Send Failure email	
 	SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh - Failed (${ENVNAME})"
 	MSG="Copying S3 file from ${S3BUCKET} failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi	
@@ -157,7 +160,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		# Send Failure email	
 		SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh - Failed (${ENVNAME})"
 		MSG="OPMHI loading SSN finder file has failed."
-		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
         exit 12
 fi
@@ -191,7 +194,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	Send Failure email	
 	SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh - Failed (${ENVNAME})"
 	MSG="Copying S3 file from ${S3BUCKET} failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi	
@@ -204,7 +207,7 @@ echo "OPMHI_LOAD_SSN_FNDR_FILE.sh completed successfully." >> ${LOGNAME}
 
 SUBJECT="OPMHI_LOAD_SSN_FNDR_FILE.sh - Completed (${ENVNAME})"
 MSG="Loading OPMHI SSN finder file to Snowflake has completed successfully."
-${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 echo "Ended at `date` " >> ${LOGNAME}
 echo "" >> ${LOGNAME}

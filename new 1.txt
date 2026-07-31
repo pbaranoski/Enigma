@@ -1,0 +1,47 @@
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_HHA/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_HSP/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_CAR/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_DME/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_ENRLMNT/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_INP/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_OPT/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_SNF/
+s3://aws-hhs-cms-eadg-bia-ddom-extracts/xtr/OPMHI_PDE/
+
+
+Finder Files
+=============
+1) Load FF into SF table
+2) After FF has been loaded into SF table --> move FF to archive folder to prevent re-processing.
+
+EFT 
+=======
+1) Download extract file to linux from s3
+2) unzip extract file
+3) Rename extract file for EFT processing P#EFT.ON
+4) Upload EFT files to s3:/EFT_Files folder
+5) Move extract file to archive folder because we are done processing.
+
+
+BOX
+==========
+1) We send Extract file as-is. No post-processing
+2) Create manifest file and move to s3://manifest_files which triggers lambda function and delivery of file
+3) We can't move extract file to archive folder because it might take several days before file is approved/delivered. So, we can't move the file.
+4) We never get notification from DDSM, so we have no 'Trigger' mechanism to intiate moving file to archive folder. So, we leave it alone.
+
+
+SFTP - MNUP 
+=============
+1) perform EFT processing functionality
+2) move "EFT" file to s3://SFTP_FIles folder. THere is not lambda function associated. 
+3) Manifest file is loaded to s3://manifest_files/SSA folder to trigger delivery of file.
+
+
+SFTP - OPMHI
+============ 
+1) Extract file is downloaded to linux from s3
+2) File is encrypted with gpg
+3) gpg File is uploaded to original s3 folder
+4) non-gpg file is moved to archive folder.
+5) Manifest file landing in folder triggers lambda function s3://manifest_files/OPM_CLMS or OPM_ENRLMT

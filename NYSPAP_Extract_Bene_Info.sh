@@ -15,15 +15,24 @@
 # Paul Baranoski 2023-08-22 Use FilenameCounts.bash to get filenames and record counts for email. 
 #                           Change Finder File location to S3 Finder_Files folder.  
 # Paul Baranoski 2024-02-02 Add ENVNAME to SUBJECT line of emails.      
+# Paul Baranoski 2026-02-10 Modify to Add "TESTING" functionality. Change manifest file to use NYSPAP_BOX_RECIPIENT constant.
 ############################################################################################################
 
 set +x
 
 #############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/NYSPAP_Extract_Bene_Info_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}NYSPAP_Extract_Bene_Info_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -36,10 +45,8 @@ echo "NYSPAP_Extract_Bene_Info.sh started at `date` " >> ${LOGNAME}
 echo "" >> ${LOGNAME}
 
 #############################################################
-# THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
+# Include common source module 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh
-
 source ${RUNDIR}FilenameCounts.bash
 
 S3BUCKET=${NYSPAP_BUCKET} 
@@ -109,10 +116,10 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="Monthly NYSPAP extract (${ENVNAME})" 
+SUBJECT="Monthly NYSPAP extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Extract for the creation of the monthly NYSPAP file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
-${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${NYSPAP_EMAIL_SENDER}" "${NYSPAP_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${NYSPAP_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 if [[ $RET_STATUS != 0 ]]; then
 		echo "" >> ${LOGNAME}
@@ -133,7 +140,7 @@ fi
 echo "" >> ${LOGNAME}
 echo "Create Manifest file for NYSPAP Extract.  " >> ${LOGNAME}
 
-${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${NYSPAP_EMAIL_SUCCESS_RECIPIENT} 
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${NYSPAP_BOX_RECIPIENT} 
 
 
 #############################################################

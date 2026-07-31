@@ -39,6 +39,8 @@ PREFIX=MNUP_MONTHLY_FNDR
 echo "MNUP_MONTHLY_BUCKET=${S3BUCKET}" >> ${LOGNAME}
 echo "Finder files SSA bucket=${FINDER_FILE_SSA_BUCKET}" >> ${LOGNAME}
 
+echo "ENIGMA_INFA_SERVER=${ENIGMA_INFA_SERVER}" >> ${LOGNAME}
+echo "CMN_UTIL=${CMN_UTIL}"  >> ${LOGNAME}
 
 #################################################################################
 # Find MNNUP Finder Files in S3

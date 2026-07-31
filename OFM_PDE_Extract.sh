@@ -32,15 +32,26 @@
 # Paul Baranoski 2025-01-29 Remove createManifestFileFunc.sh and use of its function to control NOF files to include in a manifest file.
 #                           That logic is now contained in the CreateManifestFile.sh. 
 # Paul Baranosi  2025-02-06 Update script to accept parameter year override so we can run extract as if run during a prior year.
+# Paul Baranoski 2026-04-17 Modify to add TESTING functionality.
 ############################################################################################################
 
 set +x
 
 #############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+swInTESTMode=${TESTING}
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+#############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/OFM_PDE_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}OFM_PDE_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -84,8 +95,6 @@ echo "   P_CURR_YYYY=${P_CURR_YYYY} " >> ${LOGNAME}
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh
-
 S3BUCKET=${OFM_PDE_BUCKET} 
 echo "OFM PDE Extract bucket=${S3BUCKET}" >> ${LOGNAME}
 echo "configuration file bucket=${CONFIG_BUCKET}" >> ${LOGNAME}
@@ -126,7 +135,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Listing S3 Finder Files failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="OFM PDE Extract - Failed (${ENVNAME})"
+	SUBJECT="OFM PDE Extract - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Listing S3 finder files from ${FINDER_FILE_BUCKET} failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -177,7 +186,7 @@ do
 			echo "Copying S3 OFM PDE Finder file ${finderFile} to Linux failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME})"
+			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Copying S3 file from ${FINDER_FILE_BUCKET} failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -203,7 +212,7 @@ do
 			echo "Finder file CONTRACTOR length check failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME})"
+			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="The contractor name length for finder file ${finderFile} is too long with length: ${CONTRACTOR_LEN}. Please check all finder file names."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -241,7 +250,7 @@ do
 				echo "CONTRACTOR ${CONTRACTOR} box email recipients are not set-up. Skip processing of contractor finder file. Make appropriate coding changes." >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="OFM_PDE_Extract.sh  - Warning (${ENVNAME})"
+				SUBJECT="OFM_PDE_Extract.sh  - Warning (${ENVNAME}${TESTEMAIL})"
 				MSG="CONTRACTOR ${CONTRACTOR} box email recipients are not set-up. Skip processing of contractor finder file. Make appropriate coding changes."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 			
@@ -315,7 +324,7 @@ do
 					echo "Python script OFM_PDE_Extract.py failed" >> ${LOGNAME}
 					
 					# Send Failure email	
-					SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME})"
+					SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 					MSG="OFM PDE Extract has failed."
 					${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -347,7 +356,7 @@ do
 			echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Create Manifest file in OFM_PDE_Extract.sh - Failed ($ENVNAME)"
+			SUBJECT="Create Manifest file in OFM_PDE_Extract.sh - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Create Manifest file in OFM_PDE_Extract.sh has failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -395,7 +404,7 @@ do
 			echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Create Manifest file in OFM_PDE_Extracts.sh  - Failed ($ENVNAME)"
+			SUBJECT="Create Manifest file in OFM_PDE_Extracts.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Create Manifest file in OFM_PDE_Extracts.sh  has failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -412,7 +421,7 @@ do
 		# Add Box recipients to Success email recipients	
 		SUCCESS_EMAIL_RECIPIENT="${OFM_PDE_EMAIL_SUCCESS_RECIPIENT},${BOX_RECIPIENT}"
 			
-		SUBJECT="OFM_PDE Extract - completed (${ENVNAME})" 
+		SUBJECT="OFM_PDE Extract - completed (${ENVNAME}${TESTEMAIL})" 
 		MSG="OFM_PDE Extract completed for request file ${finderFile}.\n\n\nThe following extract file(s) were created:\n\n${S3Files}"
 
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${SUCCESS_EMAIL_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
@@ -422,7 +431,7 @@ do
 			echo "Error in calling sendEmail.py" >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="Sending Success email in OFM_PDE_Extract.sh  - Failed (${ENVNAME})"
+			SUBJECT="Sending Success email in OFM_PDE_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Sending Success email in OFM_PDE_Extract.sh  has failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -445,7 +454,7 @@ do
 			echo "Moving S3 OFM PDE Finder file ${finderFile} to S3 archive folder failed." >> ${LOGNAME}
 			
 			# Send Failure email	
-			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME})"
+			SUBJECT="OFM_PDE_Extract.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 			MSG="Moving S3 file to archive ${FINDER_FILE_BUCKET} failed."
 			${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OFM_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

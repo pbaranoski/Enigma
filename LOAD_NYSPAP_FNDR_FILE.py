@@ -6,6 +6,7 @@
 # Created: Paul Baranoski  
 # Modified: 09/28/2022
 #
+# Viren Kannan 2025-11-10 Modified to load finder file directly from s3.
 ########################################################################################################
 # IMPORTS
 ########################################################################################################
@@ -36,6 +37,8 @@ TMSTMP=os.getenv('TMSTMP')
 ENVNAME=os.getenv('ENVNAME')
 LANDING=os.getenv('DATADIR')
 NYSPAP_FNDR_FILE=os.getenv('LOAD_NYSPAP_FINDER_FILE')
+LOAD_FNDR_FILE=os.getenv('LOAD_FINDER_FILE')
+
 
 
 # set email variables
@@ -59,20 +62,15 @@ try:
    snowconvert_helpers.execute_sql_statement("""USE WAREHOUSE ${sf_xtr_warehouse}""", con,exit_on_error = True)
    snowconvert_helpers.execute_sql_statement(f"""DELETE FROM "BIA_{ENVNAME}"."CMS_TARGET_XTR_{ENVNAME}".NYSPAP_FF""", con, exit_on_error=True)
    
-   ## PUT FINDER FILE TO FNDR TABLE ##
-   snowconvert_helpers.execute_sql_statement(f"""PUT file://{LANDING}{NYSPAP_FNDR_FILE} @~ OVERWRITE = TRUE""", con,exit_on_error = True)
-
    ## INSERT FINDER FILE WITH DERIVED FIELDS TO THE TARGET TABLE ##
    snowconvert_helpers.execute_sql_statement(f"""COPY INTO BIA_{ENVNAME}.CMS_TARGET_XTR_{ENVNAME}.NYSPAP_FF
 	(BENE_CAN_NUM, BIC_CD, SSN, GENDER, NYEPIC_NUM)
 	FROM (SELECT SUBSTR(f.$1, 1, 9) as BENE_CAN_NUM, SUBSTR(f.$1, 10, 2) as BIC_CD, SUBSTR(f.$1, 12, 9) as SSN, 
                  SUBSTR(f.$1, 21, 1) as GENDER, SUBSTR(f.$1, 22, 9) as NYEPIC_NUM  
-	      FROM @~/{NYSPAP_FNDR_FILE}.gz f) 
-	FILE_FORMAT = (TYPE = CSV)""", con,exit_on_error = True)
+	      FROM @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_FF_STG/{NYSPAP_FNDR_FILE} f) 
+	FORCE=TRUE FILE_FORMAT = (TYPE = CSV)""", con,exit_on_error = True)
 
 
-   ## REMOVE FINDER FILE FROM USER STAGE ##
-   snowconvert_helpers.execute_sql_statement(f"""REMOVE @~/{NYSPAP_FNDR_FILE}.gz""", con,exit_on_error = True)
    snowconvert_helpers.quit_application()
 
 except Exception as e:

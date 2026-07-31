@@ -7,6 +7,7 @@
 # Modified: 02/07/2025
 #
 # Viren Khanna 2025-02-07 Create script to load STS_HOS_HHA_FF table
+# Viren Khanna 2025-11-05 Updated script to point to updated columns in FF
 ########################################################################################################
 # IMPORTS
 ########################################################################################################
@@ -68,29 +69,29 @@ FROM (
         f.$2 AS PRVDR_NAME,
         f.$6 AS PRVDR_TYPE_ID,
         CASE 
-            WHEN f.$6 = '12' AND NULLIF(TRIM(f.$75), '') IS NOT NULL THEN '12'
+            WHEN f.$6 = '12' AND NULLIF(TRIM(f.$76), '') IS NOT NULL THEN '12'
             ELSE NULL
         END AS HOSPICE_TYPE_CD,
         CASE 
-            WHEN f.$6 = '12' AND NULLIF(TRIM(f.$75), '') IS NOT NULL THEN f.$75
+            WHEN f.$6 = '12' AND NULLIF(TRIM(f.$76), '') IS NOT NULL THEN f.$76
             ELSE NULL
         END AS HOSPICE_TYPE_DESC,
         CASE
-            WHEN f.$6 = '3' AND NULLIF(TRIM(f.$102), '') IS NOT NULL THEN
+            WHEN f.$6 = '3' AND NULLIF(TRIM(f.$103), '') IS NOT NULL THEN
                 CASE
-                    WHEN f.$102 IN ('1', '2', '3', '4', '5', '6', '7') THEN f.$102
+                    WHEN f.$103 IN ('1', '2', '3', '4', '5', '6', '7') THEN f.$103
                     ELSE NULL  -- Set to NULL if not a valid value
                 END
             ELSE NULL
         END AS HHA_TYPE_CD,
         CASE 
-            WHEN f.$6 = '3' AND f.$102 = '1' THEN 'VISITING NURSE ASSOCIATION'
-            WHEN f.$6 = '3' AND f.$102 = '2' THEN 'COMBINATION GOVT & VOL AGENCY'
-            WHEN f.$6 = '3' AND f.$102 = '3' THEN 'OFFICIAL HEALTH'
-            WHEN f.$6 = '3' AND f.$102 = '4' THEN 'REHAB FACILITY BASED'
-            WHEN f.$6 = '3' AND f.$102 = '5' THEN 'HOSPITAL BASED'
-            WHEN f.$6 = '3' AND f.$102 = '6' THEN 'SNF BASED'
-            WHEN f.$6 = '3' AND f.$102 = '7' THEN 'OTHER FACILITIES'
+            WHEN f.$6 = '3' AND f.$103 = '1' THEN 'VISITING NURSE ASSOCIATION'
+            WHEN f.$6 = '3' AND f.$103 = '2' THEN 'COMBINATION GOVT & VOL AGENCY'
+            WHEN f.$6 = '3' AND f.$103 = '3' THEN 'OFFICIAL HEALTH'
+            WHEN f.$6 = '3' AND f.$103 = '4' THEN 'REHAB FACILITY BASED'
+            WHEN f.$6 = '3' AND f.$103 = '5' THEN 'HOSPITAL BASED'
+            WHEN f.$6 = '3' AND f.$103 = '6' THEN 'SNF BASED'
+            WHEN f.$6 = '3' AND f.$103 = '7' THEN 'OTHER FACILITIES'
             ELSE NULL
         END AS HHA_TYPE_DESC
            FROM @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_FF_STG/{STS_HOS_HHA_FNDR_FILE} f)

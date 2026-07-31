@@ -15,14 +15,26 @@
 # 10/12/2023   Paul Baranoski       Remove code to pass additional parameter. This logic will be handled 
 #                                   within CreateManifestFile.sh using a Manifest Configuration file.
 # 08/08/2024   Paul Baranoski       Add ENV to Subject line for emails.
+# 10/30/2025   Paul Baranoski       OPMHI_EMAIL_SUCCESS_RECIPIENT to OPMHI_BOX_RECIPIENT.
+#                                   Change ENIGMA_EMAIL_FAILURE_RECIPIENT to ENIGMA_EMAIL_FAILURE_RECIPIENT. 
+# 2026-02-10   Viren Khanna         Modify to Add "TESTING" functionality.
 ############################################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
+
 #################################################################################
 # Establish log file  
 #################################################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
 CUR_DT=`date +%Y%m%d`
-LOGNAME=/app/IDRC/XTR/CMS/logs/OPMHI_DME_Driver_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_OPMHI_DME_Driver_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -144,7 +156,7 @@ if [[ $RET_STATUS != 0 ]]; then
         # Send Failure email	
         SUBJECT="OPMHI_DME_Driver.sh - Failed (${ENVNAME})"
         MSG="OPM-HI DME extract has failed."
-        ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+        ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
         exit 12
 fi
@@ -169,7 +181,7 @@ if [ $RET_STATUS != 0 ]; then
          # Send Failure email	
          SUBJECT="OPMHI_DME_Driver.sh - Failed (${ENVNAME})"
          MSG="CombineS3Files.sh for OPM-HI PTB DME has failed."
-         ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+         ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
          exit 12
 fi
@@ -191,10 +203,10 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="OPMHI_DME_Driver.sh  - Completed (${ENVNAME})"
+SUBJECT="OPMHI_DME_Driver.sh  - Completed (${ENVNAME}${TESTEMAIL})"
 MSG="OPM-HI PTB DME has completed successfully.\n\nThe following file(s) were created:\n\n${S3Files}"
 
-${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${OPMHI_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 RET_STATUS=$?
 
@@ -205,7 +217,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		# Send Failure email	
 		SUBJECT="Sending Success email in OPMHI_DME_Driver.sh - Failed (${ENVNAME})"
 		MSG="Sending Success email in OPMHI_DME_Driver.sh  has failed."
-		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 		exit 12
 fi
@@ -217,7 +229,7 @@ fi
 echo "" >> ${LOGNAME}
 echo "Create Manifest file for OPMHI DME Extract.  " >> ${LOGNAME}
 
-${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${CUR_DT} ${OPMHI_EMAIL_SUCCESS_RECIPIENT} 
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${CUR_DT} ${OPMHI_BOX_RECIPIENT} 
 
 
 #############################################################
@@ -232,7 +244,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	# Send Failure email	
 	SUBJECT="Create Manifest file in OPMHI_DME_Driver.sh - Failed (${ENVNAME})"
 	MSG="Create Manifest file in OPMHI_DME_Driver.sh has failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${OPMHI_EMAIL_SENDER}" "${OPMHI_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
 	exit 12
 fi	
