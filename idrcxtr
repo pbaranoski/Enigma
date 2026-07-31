@@ -1,0 +1,77 @@
+################################### 
+LOAD_NYSPAP_FNDR_FILE.sh started at Wed Sep 28 09:34:48 EDT 2022 
+
+
+*** Failure 253006: None: File doesn't exist: ['/app/IDRC/XTR/CMS/data/landingNYSPAP_FNDR_20220925.txt']
+
+Run date and time: 09/28/2022, 09:34:52
+Snowflake connector log file = /app/IDRC/XTR/CMS/logs/LOAD_NYSPAP_FNDR_FILE_SF.20220928_093452.log
+Snowflake connector logon file = /app/IDRC/XTR/CMS/scripts/logon/sf.logon
+Executing: alter session set query_tag='LOAD_NYSPAP_FNDR_FILE.py'.
+Query Start Time: 2022 09 28 09:34:53
+Printing Result Set:
+status
+Statement executed successfully.
+
+Query End Time: 2022 09 28 09:34:53
+Query Execution Time in Python for Query ID 01a7458e-0000-2bad-0000-042107fe1b06 is  0:00:00.077448
+Executing: USE WAREHOUSE ${sf_xtr_warehouse}.
+Expanding variables in SQL statement
+Expanded string: USE WAREHOUSE BIA_NP_XTR_WKLD
+Query Start Time: 2022 09 28 09:34:53
+Printing Result Set:
+status
+Statement executed successfully.
+
+Query End Time: 2022 09 28 09:34:53
+Query Execution Time in Python for Query ID 01a7458e-0000-2bc9-0000-042107fe218e is  0:00:00.064865
+Executing: DELETE FROM "BIA_DEV"."CMS_TARGET_XTR_DEV".NYSPAP_FF.
+Query Start Time: 2022 09 28 09:34:53
+Query End Time: 2022 09 28 09:34:54
+Query Execution Time in Python for Query ID 01a7458e-0000-2bc9-0000-042107fe2192 is  0:00:00.904065
+Executing: PUT file:///app/IDRC/XTR/CMS/data/landingNYSPAP_FNDR_20220925.txt @~ OVERWRITE = TRUE.
+Query Start Time: 2022 09 28 09:34:54
+Error Code 253006
+Query End Time: 2022 09 28 09:34:54
+Query Execution Time in Python for Query ID 01a7458e-0000-2bc9-0000-042107fe2196 is  0:00:00.108761
+Script done >>>>>>>>>>>>>>>>>>>>
+
+Python script LOAD_NYSPAP_FNDR_FILE.py failed
+send: 'ehlo dd-az2-infa-dei-217113.biaaws.local\r\n'
+reply: b'250-dd-az2-infa-dei-node1-217113.localdomain\r\n'
+reply: b'250-PIPELINING\r\n'
+reply: b'250-SIZE 10240000\r\n'
+reply: b'250-VRFY\r\n'
+reply: b'250-ETRN\r\n'
+reply: b'250-ENHANCEDSTATUSCODES\r\n'
+reply: b'250-8BITMIME\r\n'
+reply: b'250 DSN\r\n'
+reply: retcode (250); Msg: b'dd-az2-infa-dei-node1-217113.localdomain\nPIPELINING\nSIZE 10240000\nVRFY\nETRN\nENHANCEDSTATUSCODES\n8BITMIME\nDSN'
+send: 'mail FROM:<BIA_SUPPORT@CMS.HHS.GOV> size=199\r\n'
+reply: b'250 2.1.0 Ok\r\n'
+reply: retcode (250); Msg: b'2.1.0 Ok'
+send: 'rcpt TO:<pbaranoski@apprioinc.com>\r\n'
+reply: b'250 2.1.5 Ok\r\n'
+reply: retcode (250); Msg: b'2.1.5 Ok'
+send: 'rcpt TO:<sgayam@apprioinc.com>\r\n'
+reply: b'250 2.1.5 Ok\r\n'
+reply: retcode (250); Msg: b'2.1.5 Ok'
+send: 'rcpt TO:<jturner@apprioinc.com>\r\n'
+reply: b'250 2.1.5 Ok\r\n'
+reply: retcode (250); Msg: b'2.1.5 Ok'
+send: 'data\r\n'
+reply: b'354 End data with <CR><LF>.<CR><LF>\r\n'
+reply: retcode (354); Msg: b'End data with <CR><LF>.<CR><LF>'
+data: (354, b'End data with <CR><LF>.<CR><LF>')
+send: b'From: <BIA_SUPPORT@CMS.HHS.GOV>\r\nTo: <pbaranoski@apprioinc.com>,<sgayam@apprioinc.com>,<jturner@apprioinc.com>\r\nSubject: NYSPAP load finder file - Failed\r\n\r\nNYSPAP load finder fil has failed.\r\n\r\n    \r\n.\r\n'
+reply: b'250 2.0.0 Ok: queued as DD7BCD3AF4D\r\n'
+reply: retcode (250); Msg: b'2.0.0 Ok: queued as DD7BCD3AF4D'
+data: (250, b'2.0.0 Ok: queued as DD7BCD3AF4D')
+sender:BIA_SUPPORT@CMS.HHS.GOV
+receivers:pbaranoski@apprioinc.com,sgayam@apprioinc.com,jturner@apprioinc.com
+subject:NYSPAP load finder file - Failed
+messageText:NYSPAP load finder fil has failed.
+SMTP: Connected to smtpServer
+SMTP ehlo: Successfully identified as client to server
+STMP: set debuglevel
+Successfully sent email

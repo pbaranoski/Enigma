@@ -8,6 +8,8 @@
 # Modified: 
 #
 # Paul Baranoski 2025-07-15 Create python version of shell script
+# Paul Baranoski 2026-03-23 Removed ending '$' in regular expression to get COPY_INTO_FILENAMES. Some 
+#                           python modules (PECOS) had spaces after the COPY_INTO statement which caused reg expr to not find the line.
 #############################################################################################################
 import re
 import os
@@ -28,7 +30,7 @@ def getExtractFilenamesAndCounts(rootLogger, fLogFilenameNPath):
     # COPY_INTO_FILENAMES
     ##################################################
     # Ex. "COPY INTO @BIA_DEV.CMS_STAGE_XTR_DEV.BIA_DEV_XTR_DUALS_MA_STG/DUALS_MedAdv_AH_MD_202407_202409_20250128.085118.txt.gz"
-    reCOPY_INTO_FILENAMES = re.compile('^Executing: COPY INTO @BIA_[a-zA-Z0-9_.]+[/]{1}[a-zA-Z0-9_.]+\.gz$', re.MULTILINE)
+    reCOPY_INTO_FILENAMES = re.compile('^Executing: COPY INTO @BIA_[a-zA-Z0-9_.]+[/]{1}[a-zA-Z0-9_.-]+\.gz', re.MULTILINE)
     lstReResults = reCOPY_INTO_FILENAMES.findall(strLogFileContents)
     
     # We want the 2nd part of the split command which is the extract filename - excludes S3 Stage 
@@ -67,7 +69,7 @@ def getExtractFilenamesAndCounts(rootLogger, fLogFilenameNPath):
     strFilenamesAndCounts = "\n".join(sFilenameAndCount for sFilenameAndCount in lstFilenamesAndCounts)  + "\n"
 
     #strFilenamesAndCounts = "\n".join(FilenameAndCounts for FilenameAndCounts in lstFilenamesAndCounts )
-    rootLogger.info(f"{lstFilenamesAndCounts=}")
+    #rootLogger.info(f"{lstFilenamesAndCounts=}")
     rootLogger.info(strFilenamesAndCounts)
 
     # print DASHBOARD info 

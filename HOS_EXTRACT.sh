@@ -22,8 +22,18 @@
 # Paul Baranoski        2023-04-10   Add blank line after call to getExtractFilenamesAndCounts for 
 #                                    Dashboard_MS.sh processsing.
 # Nat.Tinovsky		2025-02-06   Add ENVNAME to SUBJECT were was missing.
+# Viren Khanna          2026-04-07   Modify to Add "TESTING" functionality.
 ############################################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
+
 
 #####################################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
@@ -33,11 +43,12 @@ RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
 source ${RUNDIR}FilenameCounts.bash
+
 #####################################################################
 # Establish log file  
 #####################################################################
 export TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/HOS_EXTRACT_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}_HOS_EXTRACT_${TMSTMP}.log
 touch ${LOGNAME}
 chmod 666 ${LOGNAME} 2>> ${LOGNAME}
 
@@ -198,7 +209,7 @@ FILE_LIST="${filenamesAndCounts}"
 #####################################################################
 echo "" >> ${LOGNAME}
 
-SUBJECT="Health Outcome Survey (HOS) for ${SDATE} ${ENVNAME}" 
+SUBJECT="Health Outcome Survey (HOS) for ${SDATE} ${ENVNAME}${TESTEMAIL}" 
 MSG="The extract for Health Outcome Survey has been completed.\n\nFILE NAME                                            NO. OF RECORDS\n======================================================\n${FILE_LIST}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${HOS_EMAIL_SENDER}" "${HOS_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

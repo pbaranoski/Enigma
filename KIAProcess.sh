@@ -61,7 +61,7 @@ echo "        scriptName2Kill=${scriptName2Kill} " >> ${LOGNAME}
 echo " " >> ${LOGNAME}
 echo "Get process ID to kill " >> ${LOGNAME}
 
-ProcessID2Kill=`ps -ux | grep "bash" | grep "${RUNDIR}${scriptName2Kill}" | awk '{print $2}' ` >> ${LOGNAME}  2>&1
+ProcessID2Kill=`ps -ux | grep "python3" | grep "${RUNDIR}${scriptName2Kill}" | awk '{print $2}' ` >> ${LOGNAME}  2>&1
 echo "ProcessID2Kill=${ProcessID2Kill}" >> ${LOGNAME}
 
  

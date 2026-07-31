@@ -12,6 +12,7 @@
 #                             (This is needed for Dashboard.sh parsing).
 #                             Added $ENVNAME to SUBJECT line of all emails.
 # Paul Baranoski 2024-12-02   Replaces FMR_EMAIL_SENDER with CMS_EMAIL_SENDER.
+# Paul Baranoski 2025-11-21   Change EFT processing to Box processing.
 ######################################################################################
 set +x
 
@@ -219,7 +220,6 @@ S3Files="${filenamesAndCounts}"
 #############################################################
 # Send Success email.
 #############################################################
-
 echo "" >> ${LOGNAME}
 echo "Get S3 Extract file list" >> ${LOGNAME}
 
@@ -246,24 +246,50 @@ fi
 #############################################################
 # EFT Extract files and check status of the extract script
 #############################################################
-echo " " >> ${LOGNAME}
-echo "EFT FMR Extract Files " >> ${LOGNAME}
-${RUNDIR}ProcessFiles2EFT.sh ${S3BUCKET}  >> ${LOGNAME} 2>&1
+#echo " " >> ${LOGNAME}
+#echo "EFT FMR Extract Files " >> ${LOGNAME}
+#${RUNDIR}ProcessFiles2EFT.sh ${S3BUCKET}  >> ${LOGNAME} 2>&1
+#
+#RET_STATUS=$?
+#
+#if [ $RET_STATUS != 0 ]; then
+#	echo "" >> ${LOGNAME}
+#	echo "Shell script ProcessFiles2EFT.sh failed" >> ${LOGNAME}
+#
+#	#Send Failure email	
+#	SUBJECT="FMR_Extract.sh  - Failed (${ENVNAME})"
+#	MSG="EFT for FMR has failed."
+#	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${FMR_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+#
+#   exit 12
+#fi
 
+
+#############################################################
+# Create Manifest file
+#############################################################
+echo "" >> ${LOGNAME}
+echo "Create Manifest file for FMR Extract.  " >> ${LOGNAME}
+
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} "${FMR_BOX_RECIPIENT}" 
+
+#############################################################
+# Check the status of script
+#############################################################
 RET_STATUS=$?
 
-if [ $RET_STATUS != 0 ]; then
+if [[ $RET_STATUS != 0 ]]; then
 	echo "" >> ${LOGNAME}
-	echo "Shell script ProcessFiles2EFT.sh failed" >> ${LOGNAME}
+	echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
+	
+	# Send Failure email	
+	SUBJECT="Create Manifest file in FMR_Extracts.sh  - Failed ($ENVNAME)"
+	MSG="Create Manifest file in FMR_Extracts.sh  has failed."
+	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
-	#Send Failure email	
-	SUBJECT="FMR_Extract.sh  - Failed (${ENVNAME})"
-	MSG="EFT for FMR has failed."
-	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${FMR_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
-
-   exit 12
-fi
-
+	exit 12
+fi	
+			
 #############################################################
 # script clean-up
 #############################################################
