@@ -14,8 +14,6 @@
 #     from Mobilize.Net Corporation.
 # </copyright>
 #
-# 06/12/2026 Paul Baranoski  Remove code that does not pertain to XTR. Included Sean changes to create correct role to access SF. 
-#
 # IDRC-8341 - Ben Mercer - update quit_application to set exit 4 if there is a non-zero error code, rather than setting exit of the error code.
 #                          Snowflake error codes exceed 256, the max exit allowed in shell.  If an exit code is > 256, and divisible by 256, that means shell will think the 
 #                          exit code is zero. 
@@ -23,7 +21,7 @@
 # IDRC-8950 - Ramesh Nagamani - update execute_sql_statement to display start time, end time, execution time and query id for each and every sql. Irrespective of query status 
 #                               start time, end time, execution time and query id will be displayed.  
 # IDRS-38553 - Vishnu Srungaram - update log_on function to make use of the secrets to login to snowflake. 
-####################################################################################################################                                 
+#                                 
 
 import sys
 import logging
@@ -172,16 +170,7 @@ def log_on(sf_logon_file = None):
 
     timeout=120
     envname = get_environment()
-
-    #####################################################
-    # Get our ENVNAME
-    #####################################################
-    ENVNAME = getenv("ENVNAME")
-    ENVNAME_LOWER = ENVNAME.lower()
     
-    #####################################################
-    # Determine if XTR, BEPSD, PTB, or PDB
-    #####################################################    
     if (sf_logon_file is None):
         stream = sys.path[0].split('/')[3]
     else:
@@ -194,10 +183,7 @@ def log_on(sf_logon_file = None):
     print(f"Stream name under log_on is:  {stream}")
     print(f"upper case Stream name under log_on is:  {stream_upper}")
     print(f"lower case Stream name under log_on is:  {stream_lower}")
-
-    #####################################################
-    # BUILD Role
-    #####################################################    
+    
     if stream_upper in ('BEPSD','PDB','PTB','XTR'):
         appl_name = "bia"
     else:
@@ -205,14 +191,8 @@ def log_on(sf_logon_file = None):
 
     print(f"appl_name under log_on is:  {appl_name}")
 
-    
     if appl_name == 'bia':
-        ##secret_name = "idrc/snowflake/bia/idrc_"+envname+"_bia_"+stream_lower+"_etl"
-        
-        if ENVNAME == 'PRD':
-            secret_name = "/prod/xtr/snowflake"   
-        else:        
-            secret_name = "/dev/xtr/snowflake"
+        secret_name = "idrc/snowflake/bia/idrc_"+envname+"_bia_"+stream_lower+"_etl"
     else:
         secret_name = "idrc/snowflake/idrs/idrc_"+envname+"_sf_om_etl_"+secret_stream_lower
     
@@ -231,20 +211,11 @@ def log_on(sf_logon_file = None):
         param_secret = getenv(secret_env_var_name)
         if param_secret:
             secret = json.loads(param_secret)
-           
-            ##sf_user = secret.get("sfUser")
-            sf_user = secret.get("username")
+            #print(secret)
+            sf_user = secret.get("sfUser")
             sf_db = secret.get("sfDatabase")
             sf_wh = secret.get("sfWarehouse")
             env = secret.get("environment")
-            privatekey = secret.get("private_key")
-            
-            print(f"{sf_user=}")
-            print(f"{sf_db=}")
-            print(f"{sf_wh=}")
-            print(f"{env=}")
-            print (f"{privatekey=}")
-            
         else:
             print(f"Secret from environment variable ({secret_env_var_name}) is not found:")
             
@@ -252,17 +223,12 @@ def log_on(sf_logon_file = None):
 
     print(f'Script Name = {script_name}')
  
- 
-    ##if env.lower() in ('dev', 'tst', 'impl'):
-    ##ENVNAME = getenv("ENVNAME")
-    if ENVNAME.lower() in ('dev', 'tst', 'impl'):
+    if env.lower() in ('dev', 'tst', 'impl'):
         sf_account = 'cms-idrnp.privatelink'
     else:
         sf_account = 'cms-idr.privatelink'
-        
-    ##privatekey=secret.get("privatekey").encode('utf-8')
-    privatekey=secret.get("private_key").encode('utf-8') 
-    
+    privatekey=secret.get("privatekey").encode('utf-8')
+   
     p_key= serialization.load_pem_private_key(
         privatekey,
         password=None,
@@ -326,24 +292,19 @@ def assume_role(sf_logon_file = None):
     else:
         print(f'Env variable IDRC_DATALAKE_AWS_ACCT is not set')
     
-    #stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/delegatedadmin/adodeveloper/"
-    stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/"
+    stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/delegatedadmin/adodeveloper/"
     print(f'stream_role_arn_prefix under assume_role is:  {stream_role_arn_prefix}')
    
 
     if stream_upper == 'XTR': 
-        ##stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-ddom-role"
-        stream_role_arn=stream_role_arn_prefix+"bit-enigma-xtr-role"
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-ddom-role"
    
 
     stsclient = boto3.client('sts')
     identity = stsclient.get_caller_identity()
     current_arn = identity['Arn']
     print("Current IAM Role ARN:", current_arn)
-    
-    ##target_role_name="arn:aws:sts::"+acct_val+":assumed-role/idrc-infa-om-etl-bene-role"
-    target_role_name="arn:aws:sts::"+acct_val+":assumed-role/bit-enigma-xtr-role"
-    
+    target_role_name="arn:aws:sts::"+acct_val+":assumed-role/idrc-infa-om-etl-bene-role"
     print("Target IAM Role ARN:", target_role_name)
     if ":assumed-role/" in current_arn and f"{target_role_name}" in current_arn:
         print(f"Already in target role: {current_arn}")

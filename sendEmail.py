@@ -8,11 +8,39 @@
 # Sean Whitelock 2024-09-06 Add starttls() to secure Connection.
 # Paul Baranoski 2025-05-20 Add catch-all Exception when smtp server is not set up. Add code to use SMTP_SERVER constant set in SET_XTR_ENV.sh to connect to SMTP server
 #                           instead of hard-coded server name. Depending on the environment, the SMTP server will be named differently.
+# Paul Baranoski 2025-12-02 Add formatting for displaying messageText to be able to recognize newlines for better log formatting.
+# Paul Baranoski 2026-07-28 Add function sendEmailNamedParms to be called when module is used as an import module. Added if __name__ == "__main__": for 
+#                           code that was not part of any function. This will prevent this code from being executed when included as an import module, and
+#                           allow code to be processed when module is executed via a subprocess call.
 ########################################################################################################
 
 import smtplib
 import sys
 import os
+
+def sendEmailNamedParms(sender=None, receivers=None, subject=None, messageText=None, bccReceivers=None, replyMsg="Note: Do not reply to this email. Send inquiries to bit-extractalerts@index-analytics.com."):
+
+    print(f"{sender=}")
+    print(f"{receivers=}")
+    print(f"{subject=}") 
+    print(f"{messageText=}") 
+    print(f"{bccReceivers=}") 
+    print(f"{replyMsg=}") 
+        
+    emailBody = messageText
+    
+    print(f"emailBody: {emailBody}")  
+        
+    try: 
+        
+        if bccReceivers is not None:
+            sendEmail(sender, receivers, subject, emailBody, bccReceivers, replyMsg)
+        else:
+            sendEmail(sender, receivers, subject, emailBody)
+        
+    except: 
+        sys.exit(12)
+
 
 def sendEmail(sender, receivers, subject, messageText, bccReceivers="", replyMsg="Note: Do not reply to this email. Send inquiries to bit-extractalerts@index-analytics.com."):
 
@@ -39,6 +67,12 @@ Subject: {subject}
     try:
 
         print("Before getting smtpServer")	
+
+        # Get SMTP Server for current environment    
+        SMTP_SERVER=os.getenv('SMTP_SERVER')
+        print(f"{SMTP_SERVER=}")
+        
+
         #smtpServer = smtplib.SMTP('localhost', 25, None)
         #smtpServer = smtplib.SMTP('internal-Enterpris-SMTPProd-I20YLD1GTM6L-357506541.us-east-1.elb.amazonaws.com', 25, None)
         # cloud-smtp-nonprod.bitaws.local
@@ -94,62 +128,67 @@ Subject: {subject}
 # Yes --> grab parms from command line and call 
 #         sendEmail function.
 # NOTE: sys.argv[0] is module name 
-#######################################################        
-if len(sys.argv) > 1:
-    # module being called from shell script
-    lstParms = sys.argv
-    sender = lstParms[1]
-    receivers = lstParms[2]
-    subject = lstParms[3]
-    messageText = lstParms[4]
-    bccReceivers=None
-    replyMsg=None
-    
-    print("len Sys argv"+str(len(sys.argv)))
-    if len(sys.argv) > 5:
-        bccReceivers= lstParms[5] 
-        replyMsg = lstParms[6]
-    
-    print(f"sender:{sender}")
-    print(f"receivers:{receivers}")
-    print(f"subject:{subject}") 
-    print(f"messageText:{messageText}") 
-    print(f"bccReceivers:{bccReceivers}") 
-    print(f"replyMsg:{replyMsg}") 
-        
-    ################################################################################
-    # Problem: Newline characters passed from shell script as "\n" or "\\n" are 
-    #          ignored by python program as legitamate newlines in messageText.
-    #          (They appear only as characters).
-    # Solution: Split messageText by "\\n" to create array ("\n" will not work), 
-    #           then building new messageText with newlines coded in python program
-    #           in proper place in messageText.
-    ################################################################################
-    emailBody = ""
+#######################################################   
+if __name__ == "__main__":
 
-    messageTextArr = messageText.split('\\n')
-    #print("NOF email lines: "+str(len(messageTextArr)))
-    for msg in messageTextArr:
-        emailBody += msg + "\n" 
     
-    print(f"emailBody: {emailBody}")  
+    if len(sys.argv) > 1:
+        # module being called from shell script
+        lstParms = sys.argv
+        sender = lstParms[1]
+        receivers = lstParms[2]
+        subject = lstParms[3]
+        messageText = lstParms[4]
+        bccReceivers=None
+        replyMsg=None
         
-    try: 
-        # Get SMTP Server for current environment    
-        SMTP_SERVER=os.getenv('SMTP_SERVER')
-        print(f"{SMTP_SERVER=}")
+        print("len Sys argv"+str(len(sys.argv)))
+        if len(sys.argv) > 5:
+            bccReceivers= lstParms[5] 
+            replyMsg = lstParms[6]
         
-        if len(sys.argv) == 7:
-            sendEmail(sender, receivers, subject, emailBody, bccReceivers, replyMsg)
-        else:
-            sendEmail(sender, receivers, subject, emailBody)
+        print(f"sender:{sender}")
+        print(f"receivers:{receivers}")
+        print(f"subject:{subject}") 
+        #print(f"messageText:{messageText}") 
+        print("messageText=\n%s", messageText)
+        print(f"bccReceivers:{bccReceivers}") 
+        print(f"replyMsg:{replyMsg}") 
+            
+        ################################################################################
+        # Problem: Newline characters passed from shell script as "\n" or "\\n" are 
+        #          ignored by python program as legitamate newlines in messageText.
+        #          (They appear only as characters).
+        # Solution: Split messageText by "\\n" to create array ("\n" will not work), 
+        #           then building new messageText with newlines coded in python program
+        #           in proper place in messageText.
+        ################################################################################
+        emailBody = ""
+
+        messageTextArr = messageText.split('\\n')
+        #print("NOF email lines: "+str(len(messageTextArr)))
+        for msg in messageTextArr:
+            emailBody += msg + "\n" 
         
-    except: 
-        sys.exit(12)
-    
-else:
-    # module NOT called from shell script
-    pass 
+        print(f"emailBody: {emailBody}")  
+            
+        try: 
+            # Get SMTP Server for current environment  
+            global SMTP_SERVER
+            SMTP_SERVER=os.getenv('SMTP_SERVER')
+            print(f"{SMTP_SERVER=}")
+            
+            if len(sys.argv) == 7:
+                sendEmail(sender, receivers, subject, emailBody, bccReceivers, replyMsg)
+            else:
+                sendEmail(sender, receivers, subject, emailBody)
+            
+        except: 
+            sys.exit(12)
+        
+    else:
+        # no parms
+        pass 
 
     
     

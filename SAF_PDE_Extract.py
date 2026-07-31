@@ -10,6 +10,9 @@
 #			, CLM_LINE_SLS_TAX_AMT, CLM_LINE_GRS_BLW_THRSHLD_AMT,CLM_LINE_GRS_ABOVE_THRSHLD_AMT
 #			, CLM_LINE_LIS_AMT, CLM_LINE_PLRO_AMT, CLM_LINE_NCVRD_PD_AMT, CLM_LINE_VCCN_ADMIN_FEE_AMT, 
 #			CLM_LINE_RPTD_GAP_DSCNT_AMT, CLM_LINE_GRS_CVRD_CST_TOT_AMT, CLM_LINE_TROOP_TOT_AMT, CLM_LTC_DSPNSNG_MTHD_CD
+#
+# Paul Baranoski 11/10/2025 - When run for 2024, code was not calculating Feb end date correctly. Code to calculate dates is buggy.
+#                             Simplified and corrected logic. Added one-time logic for re-run of FEB 2024.
 ########################################################################################################
 # IMPORTS
 ########################################################################################################
@@ -17,6 +20,7 @@ import os
 import sys
 import datetime
 from datetime import datetime
+import calendar
 
 
 currentDirectory = os.path.dirname(os.path.realpath(__file__))
@@ -275,89 +279,60 @@ print("Run date and time: " + date_time  )
 print
 
 if CLM_TYPE == "PDE":
+    
     ext_months = [
-        {"ext_month":"JAN",
-         "ext_month_no": "-01",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"FEB",
-         "ext_month_no": "-02",
-         "start_dates": ["-01"],
-         "end_date": ["-28"]
-        },
-        {"ext_month":"MAR",
-         "ext_month_no": "-03",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"APR",
-         "ext_month_no": "-04",
-         "start_dates": ["-01"],
-         "end_date": ["-30"]
-        },
-        {"ext_month":"MAY",
-         "ext_month_no": "-05",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"JUN",
-         "ext_month_no": "-06",
-         "start_dates": ["-01"],
-         "end_date": ["-30"]
-        },
-        {"ext_month":"JUL",
-         "ext_month_no": "-07",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"AUG",
-         "ext_month_no": "-08",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"SEP",
-         "ext_month_no": "-09",
-         "start_dates": ["-01"],
-         "end_date": ["-30"]
-        },
-        {"ext_month":"OCT",
-         "ext_month_no": "-10",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        },
-        {"ext_month":"NOV",
-         "ext_month_no": "-11",
-         "start_dates": ["-01"],
-         "end_date": ["-30"]
-        },
-        {"ext_month":"DEC",
-         "ext_month_no": "-12",
-         "start_dates": ["-01"],
-         "end_date": ["-31"]
-        }  
+        {"ext_month":"JAN", "ext_month_no": "-01", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"FEB", "ext_month_no": "-02", "start_dates": "-01", "end_date": "-28" },
+        {"ext_month":"MAR", "ext_month_no": "-03", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"APR", "ext_month_no": "-04", "start_dates": "-01", "end_date": "-30" },
+        {"ext_month":"MAY", "ext_month_no": "-05", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"JUN", "ext_month_no": "-06", "start_dates": "-01", "end_date": "-30" },
+        {"ext_month":"JUL", "ext_month_no": "-07", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"AUG", "ext_month_no": "-08", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"SEP", "ext_month_no": "-09", "start_dates": "-01", "end_date": "-30" },
+        {"ext_month":"OCT", "ext_month_no": "-10", "start_dates": "-01", "end_date": "-31" },
+        {"ext_month":"NOV", "ext_month_no": "-11", "start_dates": "-01", "end_date": "-30" },
+        {"ext_month":"DEC", "ext_month_no": "-12", "start_dates": "-01", "end_date": "-31" }  
     ]
 
+    """
+    # This is logic for running single month
+    START_DATE = EXT_YR + ext_months[1]["ext_month_no"] + ext_months[1]["start_dates"]
+    END_DATE = EXT_YR + ext_months[1]["ext_month_no"] + "-29"
+    XTR_FILE_NAME = f"SAF_{CLM_TYPE}_Y{EXT_YR}_{ext_months[1]['ext_month']}_{TMSTMP}.csv.gz"
+
+    print(START_DATE)
+    print(END_DATE)
+    print(XTR_FILE_NAME)
+
+    bErrorOccurred = execute_PDE_extract()
+
+    FILE_LIST.write(f"{XTR_FILE_NAME}\n")
+    """
+
+    
     for i in range(len(ext_months)):
-        for j in range(len(ext_months[i]["start_dates"])):
-            RNG = j + 1
-            START_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["start_dates"][j]
+        START_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["start_dates"]
 
-            if ext_months[i]['ext_month'] == "FEB" and RNG == 4:
-                is_leap_year = calendar.isleap(int(EXT_YR))
-                if is_leap_year == True:
-                    END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + "-29"
-                else:
-                    END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["end_date"][j]
+        print(f"{ext_months[i]['ext_month']=}")
+
+        if ext_months[i]['ext_month'] == "FEB": 
+            is_leap_year = calendar.isleap(int(EXT_YR))
+            if is_leap_year == True:
+                END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + "-29"
             else:
-                END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["end_date"][j]
-            
-            XTR_FILE_NAME = f"SAF_{CLM_TYPE}_Y{EXT_YR}_{ext_months[i]['ext_month']}_{TMSTMP}.csv.gz"
+                END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["end_date"]
+        else:
+            END_DATE = EXT_YR + ext_months[i]["ext_month_no"] + ext_months[i]["end_date"]
         
-            bErrorOccurred = execute_PDE_extract()
+        print(END_DATE)
+            
+        XTR_FILE_NAME = f"SAF_{CLM_TYPE}_Y{EXT_YR}_{ext_months[i]['ext_month']}_{TMSTMP}.csv.gz"
+    
+        bErrorOccurred = execute_PDE_extract()
 
-            FILE_LIST.write(f"{XTR_FILE_NAME}\n")
-            		
+        FILE_LIST.write(f"{XTR_FILE_NAME}\n")
+        		
 
 else:
     # Invalid CTYP code supplied to the script

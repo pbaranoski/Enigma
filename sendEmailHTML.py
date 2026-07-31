@@ -9,6 +9,7 @@
 # Paul Baranoski 2025-05-20 Add catch-all Exception when smtp server is not set up. Add code to use SMTP_SERVER constant set in SET_XTR_ENV.sh to connect to SMTP server
 #                           instead of hard-coded server name. Depending on the environment, the SMTP server will be named differently.
 # Paul Baranoski 2025-06-12 Add ability to process multiple file attachments with the 5th optional parm. This parameter needs to be a comma-delimited string.
+# Paul Baranoski 2025-12-02 Add formatting for displaying messageText to be able to recognize newlines for better log formatting.
 ########################################################################################################
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -147,7 +148,8 @@ if NOFParms > 1:
     print(f"{sender=}")
     print(f"{receivers=}")
     print(f"{subject=}") 
-    print(f"{messageText=}") 
+    #print(f"{messageText=}") 
+    print("messageText=\n%s", messageText)
     
     # if 5th parm passed it is filename to attach
     if NOFParms == 5:

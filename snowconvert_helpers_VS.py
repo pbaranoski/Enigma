@@ -14,8 +14,6 @@
 #     from Mobilize.Net Corporation.
 # </copyright>
 #
-# 06/12/2026 Paul Baranoski  Remove code that does not pertain to XTR. Included Sean changes to create correct role to access SF. 
-#
 # IDRC-8341 - Ben Mercer - update quit_application to set exit 4 if there is a non-zero error code, rather than setting exit of the error code.
 #                          Snowflake error codes exceed 256, the max exit allowed in shell.  If an exit code is > 256, and divisible by 256, that means shell will think the 
 #                          exit code is zero. 
@@ -23,7 +21,7 @@
 # IDRC-8950 - Ramesh Nagamani - update execute_sql_statement to display start time, end time, execution time and query id for each and every sql. Irrespective of query status 
 #                               start time, end time, execution time and query id will be displayed.  
 # IDRS-38553 - Vishnu Srungaram - update log_on function to make use of the secrets to login to snowflake. 
-####################################################################################################################                                 
+#                                 
 
 import sys
 import logging
@@ -63,11 +61,13 @@ _previous_executed_sql = ""
 has_passed_variables = False
 passed_variables = {}
 
-################################################################
-# We use this function.  
-################################################################
 def configure_log(log_file = None):
 
+    """
+
+
+    """ 
+    
     import os
 
     if (log_file is None):
@@ -88,11 +88,7 @@ def configure_log(log_file = None):
     logging.getLogger('botocore.endpoint').setLevel(logging.WARNING)
     logging.getLogger('botocore.auth').setLevel(logging.WARNING)
     logging.getLogger('botocore.parsers').setLevel(logging.WARNING)
-
-
-################################################################
-# Do we use these functions?  
-################################################################
+    
 def get_from_args_or_environment(arg_pos, env_variable_name, args):
     if (arg_pos < len(args)):
         return args[arg_pos]
@@ -119,11 +115,9 @@ def read_param_args(args):
             print("Using variables")
             print(dictionary)
     return dictionary
- 
- 
-################################################################
-# Needed by execute_sql_statement
-################################################################
+    
+
+
 def expandvars(path, params, skip_escaped=False):
     """Expand environment variables of form $var and ${var}.
        If parameter 'skip_escaped' is True, all escaped variable references
@@ -153,16 +147,8 @@ def expands_using_params(statement, params):
 def expandvar(str):
     return expandvars(str,passed_variables)
 
-
-################################################################
-# Defining variable (List)
-################################################################
 opened_connections = []
 
-
-################################################################
-# We use this function.
-################################################################
 def log_on(sf_logon_file = None):
 
     import os
@@ -172,21 +158,7 @@ def log_on(sf_logon_file = None):
 
     timeout=120
     envname = get_environment()
-
-    #####################################################
-    # Get our ENVNAME
-    #####################################################
-    ENVNAME = getenv("ENVNAME")
-    ENVNAME_LOWER = ENVNAME.lower()
-    
-    #####################################################
-    # Determine if XTR, BEPSD, PTB, or PDB
-    #####################################################    
-    if (sf_logon_file is None):
-        stream = sys.path[0].split('/')[3]
-    else:
-        stream = os.path.abspath(sf_logon_file).split('/')[3]
-    
+    stream = sys.path[0].split('/')[3]
     stream_upper = stream.upper()
     stream_lower = stream.lower()
     secret_stream_lower=stream_lower
@@ -194,10 +166,7 @@ def log_on(sf_logon_file = None):
     print(f"Stream name under log_on is:  {stream}")
     print(f"upper case Stream name under log_on is:  {stream_upper}")
     print(f"lower case Stream name under log_on is:  {stream_lower}")
-
-    #####################################################
-    # BUILD Role
-    #####################################################    
+    
     if stream_upper in ('BEPSD','PDB','PTB','XTR'):
         appl_name = "bia"
     else:
@@ -205,14 +174,18 @@ def log_on(sf_logon_file = None):
 
     print(f"appl_name under log_on is:  {appl_name}")
 
-    
+    if stream_upper == 'GEO':
+        secret_stream_lower="rfrnc_geo"
+    elif stream_upper == 'NDC':
+        secret_stream_lower="rfrnc_ndc"
+    elif stream_upper == 'FISS':
+        secret_stream_lower="fss"
+    else:
+        secret_stream_lower=stream_lower
+
+
     if appl_name == 'bia':
-        ##secret_name = "idrc/snowflake/bia/idrc_"+envname+"_bia_"+stream_lower+"_etl"
-        
-        if ENVNAME == 'PRD':
-            secret_name = "/prod/xtr/snowflake"   
-        else:        
-            secret_name = "/dev/xtr/snowflake"
+        secret_name = "idrc/snowflake/bia/idrc_"+envname+"_bia_"+stream_lower+"_etl"
     else:
         secret_name = "idrc/snowflake/idrs/idrc_"+envname+"_sf_om_etl_"+secret_stream_lower
     
@@ -223,28 +196,18 @@ def log_on(sf_logon_file = None):
     print(f"secret_name under log_on is:  {secret_name}")
     print(f"secret_env_var_name under log_on is:  {secret_env_var_name}")
     
-    if assume_role(sf_logon_file):
+    if assume_role():
         get_secret_as_env(secret_name,secret_env_var_name)
         
         # Access the secret from environment
-        #print(f"Parse the secret value :  {secret_env_var_name} ")
+        print(f"Parse the secret value :  {secret_env_var_name} ")
         param_secret = getenv(secret_env_var_name)
         if param_secret:
             secret = json.loads(param_secret)
-           
-            ##sf_user = secret.get("sfUser")
-            sf_user = secret.get("username")
+            sf_user = secret.get("sfUser")
             sf_db = secret.get("sfDatabase")
             sf_wh = secret.get("sfWarehouse")
             env = secret.get("environment")
-            privatekey = secret.get("private_key")
-            
-            print(f"{sf_user=}")
-            print(f"{sf_db=}")
-            print(f"{sf_wh=}")
-            print(f"{env=}")
-            print (f"{privatekey=}")
-            
         else:
             print(f"Secret from environment variable ({secret_env_var_name}) is not found:")
             
@@ -252,17 +215,12 @@ def log_on(sf_logon_file = None):
 
     print(f'Script Name = {script_name}')
  
- 
-    ##if env.lower() in ('dev', 'tst', 'impl'):
-    ##ENVNAME = getenv("ENVNAME")
-    if ENVNAME.lower() in ('dev', 'tst', 'impl'):
+    if env.lower() in ('dev', 'tst', 'impl'):
         sf_account = 'cms-idrnp.privatelink'
     else:
         sf_account = 'cms-idr.privatelink'
-        
-    ##privatekey=secret.get("privatekey").encode('utf-8')
-    privatekey=secret.get("private_key").encode('utf-8') 
-    
+    privatekey=secret.get("privatekey").encode('utf-8')
+   
     p_key= serialization.load_pem_private_key(
         privatekey,
         password=None,
@@ -289,11 +247,8 @@ def log_on(sf_logon_file = None):
     
     return con
 
-################################################################
-# Log_on function dependencies.
-################################################################
 def get_environment():
-    ENVNAME = getenv("ENVNAME")
+    ENVNAME = getenv("INFA_ENV")
     
     if ENVNAME not in ('DEV' , 'TST' , 'IMPL' , 'PRD'):
         print(f'Environment should be either DEV or TST or IMPL or PRD. ENVNAME is set to {ENVNAME}')
@@ -304,16 +259,12 @@ def get_environment():
     
     return envname
 
-def assume_role(sf_logon_file = None):
+def assume_role():
     import os
     start_time = datetime.datetime.now()
     print("Assume Role Start:",start_time.strftime("%Y %m %d %H:%M:%S")) 
 
-    #stream = sys.path[0].split('/')[3]
-    if (sf_logon_file is None):
-        stream = sys.path[0].split('/')[3]
-    else:
-        stream = os.path.abspath(sf_logon_file).split('/')[3]
+    stream = sys.path[0].split('/')[3]
     print(f'Stream name under assume_role is:  {stream}')
     stream_upper = stream.upper()
     print(f'Stream in upper case under assume_role is:  {stream_upper}')
@@ -326,39 +277,41 @@ def assume_role(sf_logon_file = None):
     else:
         print(f'Env variable IDRC_DATALAKE_AWS_ACCT is not set')
     
-    #stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/delegatedadmin/adodeveloper/"
-    stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/"
+    stream_role_arn_prefix = "arn:aws:iam::"+acct_val+":role/delegatedadmin/adodeveloper/"
     print(f'stream_role_arn_prefix under assume_role is:  {stream_role_arn_prefix}')
-   
-
-    if stream_upper == 'XTR': 
-        ##stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-ddom-role"
-        stream_role_arn=stream_role_arn_prefix+"bit-enigma-xtr-role"
-   
+    
+    if stream_upper == 'DMF':
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-ssa-dmf-role"
+    elif stream_upper == 'SSREF':
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-ssm-role"
+    elif stream_upper == 'FDB': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-ndc-fdb-role"
+    elif stream_upper == 'GEO': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-geo-zipinfo-role"
+    elif stream_upper == 'NDC': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-ndc-oth-role"
+    elif stream_upper == 'RXNORM': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-ndc-rxnorm-role"
+    elif stream_upper == 'DCTNRY': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-dctnry-role"
+    elif stream_upper == 'MDDB': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-ndc-mddb-role"
+    elif stream_upper == 'GIS': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-rfrnc-geo-esri-role"
+    elif stream_upper[0:4] == 'FNDR':
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-fndr-role"    
+    elif stream_upper == 'PTB': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-pbar-role"
+    elif stream_upper == 'PDB': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-pdb-role"
+    elif stream_upper == 'XTR': 
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-ddom-role"
+    else:
+        stream_role_arn=stream_role_arn_prefix+"idrc-infa-om-etl-"+stream_lower+"-role"
 
     stsclient = boto3.client('sts')
     identity = stsclient.get_caller_identity()
-    current_arn = identity['Arn']
-    print("Current IAM Role ARN:", current_arn)
-    
-    ##target_role_name="arn:aws:sts::"+acct_val+":assumed-role/idrc-infa-om-etl-bene-role"
-    target_role_name="arn:aws:sts::"+acct_val+":assumed-role/bit-enigma-xtr-role"
-    
-    print("Target IAM Role ARN:", target_role_name)
-    if ":assumed-role/" in current_arn and f"{target_role_name}" in current_arn:
-        print(f"Already in target role: {current_arn}")
-        # Just export the creds from the current session 
-        session = boto3.Session()
-        # Set temporary credentials in evironment variables
-        creds = session.get_credentials().get_frozen_credentials()
-        os.environ["AWS_ACCESS_KEY_ID"] = creds.access_key
-        os.environ["AWS_SECRET_ACCESS_KEY"] = creds.secret_key
-        if creds.token:
-            os.environ["AWS_SESSION_TOKEN"] = creds.token
-        print("Temporary credentials assigned to environment variables for Already assumed role")        
-        return True     
-    
-    
+    print("Current IAM Role ARN:", identity['Arn'])
     session_name = "AssumeRoleSession"
     print("Assuming the role and setting credentials as environment variables")
     try:        
@@ -375,8 +328,6 @@ def assume_role(sf_logon_file = None):
         os.environ["AWS_SESSION_TOKEN"] = creds["SessionToken"]
         
         print("Temporary credentials assigned to environment variables")
-        assumed_arn = response["AssumedRoleUser"]["Arn"]
-        print(f"Assumed IAM Role ARN: {assumed_arn}")
 
         return True 
     
@@ -425,9 +376,7 @@ def get_secret_as_env(secret_name,secret_env_var_name):
         quit_application()
         return False
 
-###################################################
-# execute_sql_statement - helper functions 
-###################################################
+
 def at_exit_helpers():
     print("Script done >>>>>>>>>>>>>>>>>>>>")
     for c in opened_connections:
@@ -452,9 +401,6 @@ def import_file(filename, separator = ' '):
 def import_reset():
     return Import.reset()
 
-################################################################
-# We use this function.
-################################################################
 def execute_sql_statement(sql_string, con, using=None, query_tag: str = None, exit_on_error: bool = True):
     """
     Executes the given SQL statement using the passed Snowflake connection, optionally quitting
@@ -523,9 +469,16 @@ def execute_sql_statement(sql_string, con, using=None, query_tag: str = None, ex
         cur.close()
 
 
-################################################################
-# Needed by execute_sql_statement
-################################################################
+def repeat_previous_sql_statement(con, n = 1):
+    if _previous_executed_sql == "":
+        if n == 0:  
+            n = 1
+        for rep in xrange(n):
+            execute_sql_statement(_previous_executed_sql, con)
+    else:
+        print("Warning: No previous SQL request.")
+
+
 def _print_result_set(cur):
     if (Export.expandedfilename is None):
         # if there is not export file set then print to console
@@ -598,9 +551,7 @@ def readrun(line, skip=0):
 def remark(arg):
     print(arg)
 
-################################################################
-# We use this function
-################################################################
+
 def quit_application(code=None):
 #    code = code or error_level
 #    print(f"Error Code {code}")
@@ -619,15 +570,54 @@ def quit_application(code=None):
     else:
         sys.exit(4)
 
+def import_data_to_temptable(tempTableName, inputDataPlaceholder, con):
+    sql = """COPY INTO {} FROM {}  FILE_FORMAT = ( TYPE=CSV SKIP_HEADER = 1 ) ON_ERROR = CONTINUE""".format(tempTableName, inputDataPlaceholder)
+    execute_sql_statement(sql, con)
 
-#############################################
-# 
-#############################################
+def drop_transient_table(tempTableName, con):
+    sql = """DROP TABLE {}""".format(tempTableName)
+    execute_sql_statement(sql, con)
+
+def file_exists_and_readable(filename):
+    return access(path.expandvars(filename),R_OK)
+
+def exec_os(command):
+    print("executing os command: {0}".format(command))
+    return subprocess.getoutput(command)
+
+def simple_fast_load(con,target_schema,filepath,stagename,target_table_name):
+   ## expand any environment var
+   target_schema = expandvar(target_schema)
+   filepath = expandvar(filepath)
+   filename = path.basename(filepath)
+   stagename = expandvar(stagename)
+   target_table_name = expandvar(target_table_name)
+   execute_sql_statement(f""" USE SCHEMA {target_schema} """, con)
+   print(f"Putting file {filepath} into {stagename}...")
+   con.cursor().execute(f"PUT file://{filepath} @{stagename} OVERWRITE = TRUE")
+   print(f"Done put file...ErrorCode {error_code}")
+   print(">>>Copying into...")
+   execute_sql_statement(f"""
+   COPY INTO {target_schema}.{target_table_name}
+   FROM @{stagename}/{filename}
+   FILE_FORMAT = ( TYPE=CSV SKIP_HEADER = 1 )
+   ON_ERROR = CONTINUE""", con)
+   print(f"<<<Done copying. ErrorCode {error_code}")
+   print(f">>>Creating temp table CTE_{target_table_name}")
+   sql = f"CREATE TABLE {target_schema}.CTE_{target_table_name}  AS SELECT DISTINCT * FROM {target_schema}.{target_table_name}"
+   execute_sql_statement(sql, con)
+   print(f"<<<Done creating temp table. ErrorCode {error_code}")
+   print(f">>>Droping old {target_table_name}")
+   sql = f"DROP TABLE {target_schema}.{target_table_name}"
+   execute_sql_statement(sql, con)
+   print(f"<<<Done droping old table. ErrorCode {error_code}")
+   print(f">>>Renaming old CTE_{target_table_name}")
+   sql = f"ALTER TABLE {target_schema}.CTE_{target_table_name} RENAME TO {target_schema}.{target_table_name}"
+   execute_sql_statement(sql, con)
+   print(f"<<<Done droping old table. ErrorCode {error_code}")
+
 atexit.register(at_exit_helpers)
 
-#############################################
-# two functions names exception_hook?
-#############################################
 def exception_hook(exctype, value, tback):
     print(f"*** Failure: {value}", file=sys.stderr)
     traceback_formatted = traceback.format_exception(exctype, value, tback)
@@ -636,11 +626,7 @@ def exception_hook(exctype, value, tback):
     quit_application(1)
 
 sys.excepthook = exception_hook
-
-
-#############################################
-# Classes Import, Export, Parameters
-#############################################   
+   
 class Import:
     expandedfilename=None
     separator=' '

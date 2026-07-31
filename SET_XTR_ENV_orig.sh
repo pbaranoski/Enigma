@@ -148,45 +148,18 @@
 # 03/26/2026   Paul Baranoski       Remove LINDA.KING@CMS.HHS.GOV from email distros. She's leaving CMS.
 # 04/21/2026   Paul Baranoski       Replace BIT_DDOM_PO@cms.hhs.gov with BIT_DDOM_PO@cms.hhs.gov.
 # 05/12/2026   Paul Baranoski       Add Kenneth.Wilkins@cms.hhs.gov to PART_AB_EMAIL_SUCCESS_RECIPIENT.
-# 05/28/2026   Paul Baranoski       Remove Informatica source modules and other variables not needed so we can migrate to new server.
-# 06/10/2026   Paul Baranoski       Change sdrc email address to datarequest@cms.hhs.gov for Part D Duals success emails.
-# 06/25/2026   Paul Baranoski       Add code so that this module works in both enigma and infa servers to prevent issues.
 #########################################################################################
 #set -x
 echo "In SET_ENV_XTR "
+source /app/INFA/Config/setToolsEnv.ksh
+source /app/INFA/Logon/idrc_xtr.logon
+#source /app/INFA/Logon/idrc_PTB.logon
 
-echo "hostname=`hostname`"
+export ENVNAME=$INFA_ENV
 
-ENV_IND=`hostname | cut -c-1 `
-if [ ${ENV_IND} = 'd' ];then
-    ENVNAME=DEV
-elif [ ${ENV_IND} = 't' ];then    
-    ENVNAME=TST    
-elif [ ${ENV_IND} = 'i' ];then    
-    ENVNAME=IMPL  
-elif [ ${ENV_IND} = 'p' ];then   	
-    ENVNAME=PRD  
-else    
-    ENVNAME=UNK 
-fi	
 
 # Set default value if ENVNAME is null
 ENVNAME=${ENVNAME:='UNK'}
-
-export ENVNAME
-    
-echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-echo -e "\t\tCurrent Environment is : " ${ENVNAME}
-echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'   
-
-
-###############################################################
-# Determine whether infa or enig server based on hostname
-# Ex. d1-infa or d1-enig
-###############################################################
-ENIGMA_INFA_SERVER=`hostname | cut -c4-7 `
-echo "ENIGMA_INFA_SERVER=${ENIGMA_INFA_SERVER}"
-
 
 if [ $ENVNAME = 'DEV' -o $ENVNAME = 'TST' -o $ENVNAME = 'IMPL' -o $ENVNAME = 'PRD' ];
 then
@@ -201,41 +174,88 @@ else
     exit 1
 fi
 
+echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+echo -e "\t\tCurrent Environment is : " $ENVNAME
+echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+export ENVNAME_LOWER=$(echo $ENVNAME | tr "[:upper:]" "[:lower:]")
+export ENV_CHAR=$(echo $ENVNAME | cut -c1)
+
+
+# Is this a DEI v4 server? v3=dd-az2-infa-dei-node1-217103  v4=d1-infa-dei-1.awscloud.cms.local
+DEI_V4_LINUX_SERVER=`uname -a | cut -d' ' -f2 | egrep 'awscloud.cms.local'`
+if [ "${DEI_V4_LINUX_SERVER}" = "" ];then
+    DEI_V4_SERVER_SW="N"
+	DEI_V3V4_LIT="-v3"
+
+else
+    DEI_V4_SERVER_SW="Y"
+	DEI_V3V4_LIT="-v4"
+fi
+
+export DEI_V4_SERVER_SW
+export DEI_V3V4_LIT
 
 # Snowflake warehouse variables
 export sf_etl_warehouse=BIA_${SF_ETL_WHSE}_ETL_WKLD
 export sf_xtr_warehouse=BIA_${SF_ETL_WHSE}_XTR_WKLD
 
-# Set location of snowconvert_helpers python program
-if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-	export CMN_UTIL=/app/IDRC/COMMON/CMS/scripts/util
-else	
-	export CMN_UTIL=/app/IDRC/XTR/CMS/scripts/run
-fi
 
+export ENVPATH=/app/IDRC/XTR/CMS
+export DATA=$ENVPATH/data
+export LANDING=$ENVPATH/data/landing
+export ARCHIVE=$ENVPATH/data/archive
+export WORK=$ENVPATH/data/work
+export HOLD=$ENVPATH/data/hold
+export TEMP_PATH=$ENVPATH/tmp
+export ONETIME=$ENVPATH/onetime
+export SCRIPTS=$ENVPATH/scripts
+export LOGS=$ENVPATH/logs
+export UTIL=$ENVPATH/scripts/util
+export SOURCE=$ENVPATH/scripts/source
+export DDL=$ENVPATH/scripts/ddl
+export RUN=$ENVPATH/scripts/run
+export LOGONPATH=$ENVPATH/scripts/logon
+export MAINLOG=$ENVPATH/logs
+export LOG_PATH=$ENVPATH/logs
+export CURRENT_LOG=$MAINLOG/current
 
-######################################
-#  SET IDRC_DATALAKE_AWS_ACCT value 
-######################################
-if  [ ${ENVNAME} = 'DEV' ];then
-	if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-		export IDRC_DATALAKE_AWS_ACCT="772614087260" 
-	else	
-		export IDRC_DATALAKE_AWS_ACCT="779846826630"
-	fi	
-elif [ ${ENVNAME} = 'PRD' ];then
-	if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-		export IDRC_DATALAKE_AWS_ACCT="148550782651" 
-	else	
-		export IDRC_DATALAKE_AWS_ACCT="203918871088"
-	fi
-fi
-	
-	
+export CMN_UTIL=/app/IDRC/COMMON/CMS/scripts/util
+export COMMON_UTIL_PATH=/app/IDRC/COMMON/CMS/scripts/util
+export CMN_RUN=/app/IDRC/COMMON/CMS/scripts/run
+export CMN_SOURCE=/app/IDRC/COMMON/CMS/scripts/source
+export META_SRC_SK=27
+
 # Python Interpreter
 export PYTHON_COMMAND=python3
 
-
+########################################################################
+# Snowflake Parameters
+########################################################################
+export IDRC_DB=IDRC_${ENVNAME}
+export BIA_DB=BIA_${ENVNAME}
+export DIM_BENE_SCHEMA=CMS_DIM_BENE_${ENVNAME}
+export DIM_BENE_CD_SCHEMA=CMS_DIM_BENE_CD_${ENVNAME}
+export DIM_PRVDR_SCHEMA=CMS_DIM_PRVDR_${ENVNAME}
+export DIM_PROD_SCHEMA=CMS_DIM_PROD_${ENVNAME}
+export DIM_DGNS_SCHEMA=CMS_DIM_DGNS_${ENVNAME}
+export DIM_PRCDR_SCHEMA=CMS_DIM_PRCDR_${ENVNAME}
+export DIM_CLM_CD_SCHEMA=CMS_DIM_CLM_CD_${ENVNAME}
+export DIM_GEO_SCHEMA=CMS_DIM_GEO_${ENVNAME}
+export DIM_CLNDR_SCHEMA=CMS_DIM_CLNDR_${ENVNAME}
+export TEMP_SCHEMA=CMS_ETLTEMP_COMM_${ENVNAME}
+export LOG_SCHEMA=CMS_LOG_XTR_${ENVNAME}
+export MCS_STAGE_SCHEMA=CMS_STAGE_MCS_${ENVNAME}
+export XTR_STAGE_SCHEMA=CMS_STAGE_XTR_${ENVNAME}
+export XTR_DIM_SCHEMA=CMS_DIM_XTR_${ENVNAME}
+export XTR_AGG_SCHEMA=CMS_AGG_XTR_${ENVNAME}
+export FCT_CLM_SCHEMA=CMS_FCT_CLM_${ENVNAME}
+export MCS_LOG_SCHEMA=CMS_LOG_XTR_${ENVNAME}
+export VMS_LOG_SCHEMA=CMS_LOG_VMS_${ENVNAME}
+export QT_SCHEMA=CMS_QT_COMM_${ENVNAME}
+export SP_META_SCHEMA=CMS_LOG_XTR_${ENVNAME}
+export SP_SCHEMA=CMS_SP_COMM_${ENVNAME}
+export UTIL_SCHEMA=CMS_CMN_UTLTY_${ENVNAME}
+#
 ############################################
 # DDOM manifest file info
 ############################################
@@ -245,14 +265,28 @@ export DDOM_CONTACT_EMAIL="edward.belle@cms.hhs.gov"
 
 		
 #######################################################
-# SET Bucket and SMTP env variables
+# Set appropriate S3 bucket/path name and SMTP server
+#    based on v3 or v4 server and prod/non-prod
 #######################################################
-if [ ${ENVNAME} = 'PRD' ]; then
-	export bucket=aws-hhs-cms-eadg-bia-ddom-extracts/xtr/
-	export SMTP_SERVER="cloud-smtp-prod.bitaws.local"
+if [ "${DEI_V4_SERVER_SW}" = "Y" ];then
+	if [ $ENVNAME = 'PRD' ]; then
+		#export bucket=aws-cms-oit-bit-ddom-extracts/xtr/
+		export bucket=aws-hhs-cms-eadg-bia-ddom-extracts/xtr/
+		export SMTP_SERVER="cloud-smtp-prod.bitaws.local"
+	else
+		#export bucket=aws-cms-oit-bit-non-prod-ddom-extracts/xtr/${ENVNAME}/
+		export bucket=aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/${ENVNAME}/
+		export SMTP_SERVER="cloud-smtp-nonprod.bitaws.local"
+		
+	fi
 else
-	export bucket=aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/${ENVNAME}/
-	export SMTP_SERVER="cloud-smtp-nonprod.bitaws.local"
+	if [ $ENVNAME = 'PRD' ]; then
+		export bucket=aws-hhs-cms-eadg-bia-ddom-extracts/xtr/
+		export SMTP_SERVER="cloud-smtp-prod.biaaws.local"
+	else
+		export bucket=aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/${ENVNAME}/
+		export SMTP_SERVER="cloud-smtp-prod.biaaws.local"
+	fi
 fi
 
 
@@ -437,7 +471,7 @@ then
 
     export MNUP_EMAIL_SUCCESS_RECIPIENT="bit-extractalerts@index-analytics.com"
     export MNUP_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"	
-    export MNUP_EMAIL_BOX_RECIPIENT="bit-extractalerts@index-analytics.com"
+    export MNUP_EMAIL_BOX_RECIPIENT="jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov,Daniel.Lee2@cms.hhs.gov,olga.yablonovsky@ssa.gov"
 	
     export NYSPAP_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
     export NYSPAP_EMAIL_SUCCESS_RECIPIENT="bit-extractalerts@index-analytics.com"
@@ -728,11 +762,11 @@ else
     export PSPSNPI_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export PTDDUALMNTH_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
-    export PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
+    export PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
     export PTDDUALMNTH_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export PTDDUALDAILY_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
-    export PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
+    export PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
     export PTDDUALDAILY_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export RAND_FFS_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
@@ -825,6 +859,30 @@ else
 fi
    
 
+
+########################################################################
+# Teradata Parameters
+########################################################################
+#set -x
+
+if [ "$(echo ${INFA_ENV} | /usr/bin/tr '[a-z]' '[A-Z]')" == "DEV" ];
+then
+   TD_DB_ENV=C${INFA_ENV}
+elif [ "$(echo ${INFA_ENV} | /usr/bin/tr '[a-z]' '[A-Z]')" == "IMPL" ];
+then
+   TD_DB_ENV=INT
+else
+   TD_DB_ENV=${INFA_ENV}
+fi
+
+########################################################################
+# Part B Carrier parameters
+########################################################################
+export Q1_START_DT=-01-01
+export Q1_END_DT=-03-31
+
+
 #######################################################################################################################################
 #                                            End of Script                                                                            #
 ########################################################################################################################################
+

@@ -1,0 +1,27 @@
+cd /app/IDRC/XTR/CMS/Scripts/source
+
+aws s3 cp NATNL_VA.txt s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/DEV_VALIDATION/CredCov_Prep/CredCov_FinalFiles/NATNL_VA.txt
+
+aws s3 cp WRKNG_AGED.txt s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/DEV_VALIDATION/CredCov_Prep/CredCov_FinalFiles/WRKNG_AGED.txt
+
+aws s3 cp TRICARE.txt s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/DEV_VALIDATION/CredCov_Prep/CredCov_FinalFiles/TRICARE.txt
+
+aws s3 cp VA.txt s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/DEV_VALIDATION/CredCov_Prep/CredCov_FinalFiles/VA.txt
+
+aws s3 cp FEHB_BENE.txt s3://aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod/xtr/DEV_VALIDATION/CredCov_Prep/CredCov_FinalFiles/FEHB_BENE.txt
+
+
+BZH3.DSH.MEDPAR.Y2024R.LOAD.R12 1.9GB --> P#EFT.ON.DSHMED.Y{YYYY}.DYYMMDD.THHMMSS1 --> DSH_LOAD_Y{YYYY}.DYYMMDD.THHMMSS1.txt
+
+
+The Tricare job EDX#800 looks for up to 20 finder files named 
+P#EDX.IN.EFT.CMSNF01.FINDER thru P#EDX.IN.EFT.CMSNF20.FINDER that arrive on the MF on Wed morning.   
+
+
+P#EFT.IG.CMSNF01.FINDER.D260203.T1928066   --> P#EFT.IN.CMSNF01.FINDER.D260203.T1928066
+
+P#EFT.IN.CMSNF01.FINDER.D260203.T1928066 -->  P#EFT.ON.CMSN{F01}.FINDER.D260203.T1928066 
+
+P#EFT.ON.{CMSNF01}.FINDER.D260203.T1928066  --> TRICARE_FNDR_{CMSNF01}.D260203.T1928066 
+
+       

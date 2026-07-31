@@ -41,10 +41,7 @@
 # 05/12/2026   Paul Baranoski    Add Kenneth.Wilkins@cms.hhs.gov to PART_AB_EMAIL_SUCCESS_RECIPIENT.
 # 05/18/2026   Paul Baranoski    Add GPG encrypt/decrypt constants for OPMHI.
 # 06/09/2026   Paul Baranoski    Add OPMHI Manifest SFTP folders.
-# 06/10/2026   Paul Baranoski    Change sdrc email address to datarequest@cms.hhs.gov for Part D Duals success emails.
-# 06/25/2026   Paul Baranoski    Add GPG encrypt/decrypt constants for OPMHI for Prod environment.
-#                                Add code so that this module works in both enigma and infa servers to prevent issues.
-# 07/14/2026   Paul Baranoski    Add new BOX/SFTP Recipients for OPMHI extracts for Production.
+# 06/10/2026   Paul Baranoski       Change sdrc email address to datarequest@cms.hhs.gov for Part D Duals success emails.
 #####################################################################################
 
 import os
@@ -78,13 +75,6 @@ print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 os.environ["ENVNAME"] = ENVNAME
 
 
-###############################################################
-# Determine whether infa or enig server based on hostname
-# Ex. d1-infa or d1-enig
-###############################################################
-ENIGMA_INFA_SERVER = hostname[3:7]
-print(f"{ENIGMA_INFA_SERVER=}")
-
 #########################################################################
 # Rest of SET_XTR_ENV.sh
 #########################################################################
@@ -102,30 +92,22 @@ else:
 os.environ["sf_etl_warehouse"] = f"BIA_{SF_ETL_WHSE}_ETL_WKLD"
 os.environ["sf_xtr_warehouse"] = f"BIA_{SF_ETL_WHSE}_XTR_WKLD"
 
-# Set location of snowconvert_helpers python program
-if ENIGMA_INFA_SERVER == "infa": 
-    os.environ["CMN_UTIL"] = "/app/IDRC/COMMON/CMS/scripts/util"
-else:    
-    os.environ["CMN_UTIL"] = "/app/IDRC/XTR/CMS/scripts/run"
+#os.environ["CMN_UTIL"] = "/app/IDRC/COMMON/CMS/scripts/util"
+os.environ["CMN_UTIL"] = "/app/IDRC/XTR/CMS/scripts/run"
 
 ######################################
-#  Configures Additional Software    #
+#  Configures Additional Software   #
 ######################################
 if  ENVNAME == 'DEV':
-    if ENIGMA_INFA_SERVER == "infa": 
-        os.environ["IDRC_DATALAKE_AWS_ACCT"] = "772614087260"
-    else:    
-        os.environ["IDRC_DATALAKE_AWS_ACCT"] = "779846826630" 
-
+    #os.environ["IDRC_DATALAKE_AWS_ACCT"] = "772614087260"
+    os.environ["IDRC_DATALAKE_AWS_ACCT"] = "779846826630" --> value when on enigma Dev server
 elif ENVNAME == 'TST':
     os.environ["IDRC_DATALAKE_AWS_ACCT"] = "232722229861"
 elif ENVNAME == 'IMPL':
     os.environ["IDRC_DATALAKE_AWS_ACCT"] = "291492156955"
 elif ENVNAME == 'PRD':
-    if ENIGMA_INFA_SERVER == "infa": 
-        os.environ["IDRC_DATALAKE_AWS_ACCT"] = "148550782651"
-    else:    
-        os.environ["IDRC_DATALAKE_AWS_ACCT"] = "203918871088" 
+    os.environ["IDRC_DATALAKE_AWS_ACCT"] = "148550782651"
+    #os.environ["IDRC_DATALAKE_AWS_ACCT"] = "203918871088" --> value when on enigma Dev server
                       
  
 
@@ -290,10 +272,10 @@ if ENVNAME == 'DEV' or ENVNAME == 'TST' or ENVNAME == 'IMPL':
 else:
     
     # for gpg enctyption/decryption
-    OPMHI_CLAIMS_ENCRYPT_KEY_SECRET_NAME = "opm-prod-claims-public-key"
-    OPMHI_ENROLL_ENCRYPT_KEY_SECRET_NAME = "opm-prod-enrollment-public-key"
-    OPMHI_DECRYPT_KEY_SECRET_NAME  = "opm-prod-extracts-private-key"
-    OPMHI_DECRYPT_PASSPHRASE = "gpgprivatekeyprod05292026"
+    OPMHI_CLAIMS_ENCRYPT_KEY_SECRET_NAME = "np-opm-extract-claims-public-key"
+    OPMHI_ENROLL_ENCRYPT_KEY_SECRET_NAME = "np-opm-extract-public-key"
+    OPMHI_DECRYPT_KEY_SECRET_NAME  = "np-opm-private-key"
+    OPMHI_DECRYPT_PASSPHRASE = "gpgprivatekey04222026"
     REGION = "us-east-1"
     
     
@@ -341,7 +323,7 @@ if ENVNAME == 'DEV' or ENVNAME == 'TST' or ENVNAME == 'IMPL' or swTESTING == "Y"
     MEDPAC_EMAIL_BOX_RECIPIENT = "bit-extractalerts@index-analytics.com"
 
     MNUP_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com"
-    MNUP_EMAIL_BOX_RECIPIENT = "bit-extractalerts@index-analytics.com"
+    MNUP_EMAIL_BOX_RECIPIENT = "jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov,Daniel.Lee2@cms.hhs.gov,olga.yablonovsky@ssa.gov"
     
     NYSPAP_EMAIL_SENDER = "BIA_SUPPORT@cms.hhs.gov"
     NYSPAP_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com"
@@ -358,7 +340,6 @@ if ENVNAME == 'DEV' or ENVNAME == 'TST' or ENVNAME == 'IMPL' or swTESTING == "Y"
 
     OPMHI_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com"
     OPMHI_BOX_RECIPIENT = "bit-extractalerts@index-analytics.com"
-    OPMHI_SFTP_RECIPIENT = "bit-extractalerts@index-analytics.com"
     
     OPMHI_HIST_EMAIL_SUCCESS_RECIPIENT = "jturner-con@index-analytics.com"
     PAC_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com"
@@ -506,9 +487,9 @@ else:
     OFM_PDE_CONRAD_BOX_RECIPIENT = "mcano@conradllp.com,sperera@conradllp.com,jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov"	
     OFM_PDE_UNKNOWN_BOX_RECIPIENT = "jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov"	
 
-    # the BOX recipient are actually the SFTP recipients on the manifest file
-    OPMHI_EMAIL_SUCCESS_RECIPIENT = "ROVRSupport@opm.gov,ROVRAlerts@opm.gov,HSAAlerts@opm.gov,SA_UnixLinux@opm.gov,bit-extractalerts@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
-    OPMHI_BOX_RECIPIENT = "ROVRSupport@opm.gov,ROVRAlerts@opm.gov,HSAAlerts@opm.gov,SA_UnixLinux@opm.gov,jagadeeshwar.pagidimarri@cms.hhs.gov,monica.algozer@cms.hhs.gov"
+
+    OPMHI_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com,Joseph.Stewart@opm.gov,BIT_DDOM_PO@cms.hhs.gov"
+    OPMHI_BOX_RECIPIENT = "Joseph.Stewart@opm.gov,jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov"
 
     OPMHI_HIST_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com"
 
@@ -532,8 +513,8 @@ else:
 
     PSPSNPI_SUCCESS_RECIPIENT = "bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
 
-    PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT = "Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,BIT_DDOM_PO@cms.hhs.gov,bit-extractsupport@index-analytics.com"
-    PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT = "Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,BIT_DDOM_PO@cms.hhs.gov,bit-extractsupport@index-analytics.com"
+    PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT = "Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,BIT_DDOM_PO@cms.hhs.gov,bit-extractsupport@index-analytics.com"
+    PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT = "Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,BIT_DDOM_PO@cms.hhs.gov,bit-extractsupport@index-analytics.com"
 
     RAND_FFS_EMAIL_SUCCESS_RECIPIENT = "bit-extractalerts@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
     RAND_FFS_BOX_RECIPIENTS = "jdaly@rand.org,jlai@rand.org,jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov"

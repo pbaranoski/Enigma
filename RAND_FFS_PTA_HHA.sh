@@ -12,8 +12,19 @@
 #                              Add call to create manifest file.
 #                              Add ENVNAME to SUBJECT of all emails.
 #                              Change process to get filename prefix for combine
+# Paul Baranoski    2026-05-06 Add TESTING functionality. 
 ############################################################################################################
 set +x
+
+#############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+swInTESTMode=${TESTING}
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
@@ -25,15 +36,13 @@ DATADIR=/app/IDRC/XTR/CMS/data/
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/RAND_FFS_PTA_HHA_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}RAND_FFS_PTA_HHA_${TMSTMP}.log
 touch ${LOGNAME}
 chmod 666 ${LOGNAME} 2>> ${LOGNAME} 
 
 echo "################################### " >> ${LOGNAME}
 echo "RAND_FFS_PTA_HHA.sh started at ${TMSTMP} " >> ${LOGNAME}
 echo "" >> ${LOGNAME}
-
-source ${RUNDIR}SET_XTR_ENV.sh
 
 source ${RUNDIR}FilenameCounts.bash
 
@@ -106,7 +115,7 @@ do
 		echo "RAND_FFS_PTA_HHA.sh failed during the combine step" >> ${LOGNAME}
 
 		#Send Failure email	
-		SUBJECT="RAND FFS Part A HHA Extract - Failed (${ENVNAME})"
+		SUBJECT="RAND FFS Part A HHA Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="RAND_FFS_PTA_HHA.sh failed while combining HHA S3 files."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_FFS_EMAIL_SENDER}" "${RAND_FFS_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 		exit 12
@@ -140,7 +149,7 @@ FILE_LIST="${filenamesAndCounts}"
 echo "" >> ${LOGNAME}
 echo "Sending success email with filenames." >> ${LOGNAME}
 
-SUBJECT="RAND FFS Part A HHA Extract - COMPLETE (${ENVNAME})"
+SUBJECT="RAND FFS Part A HHA Extract - COMPLETE (${ENVNAME}${TESTEMAIL})"
 MSG="RAND_FFS_PTA_HHA.sh completed successfully.\n\nThe following file(s) were created:\n\n${FILE_LIST}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_FFS_EMAIL_SENDER}" "${RAND_FFS_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -149,7 +158,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "RAND_FFS_PTA_HHA.sh failed - Error in calling sendEmail.py" >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="RAND_FFS_PTA_HHA.sh failed - Error in calling sendEmail.py (${ENVNAME})"
+	SUBJECT="RAND_FFS_PTA_HHA.sh failed - Error in calling sendEmail.py (${ENVNAME}${TESTEMAIL})"
 	MSG="Sending Success email in RAND_FFS_PTA_HHA.sh  has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_FFS_EMAIL_SENDER}" "${RAND_FFS_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -176,7 +185,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="Create Manifest file in RAND_FFS_PTA_HHA.sh - Failed (${ENVNAME})"
+		SUBJECT="Create Manifest file in RAND_FFS_PTA_HHA.sh - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Create Manifest file in RAND_FFS_PTA_HHA.sh has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RAND_FFS_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

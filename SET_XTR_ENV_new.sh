@@ -149,8 +149,6 @@
 # 04/21/2026   Paul Baranoski       Replace BIT_DDOM_PO@cms.hhs.gov with BIT_DDOM_PO@cms.hhs.gov.
 # 05/12/2026   Paul Baranoski       Add Kenneth.Wilkins@cms.hhs.gov to PART_AB_EMAIL_SUCCESS_RECIPIENT.
 # 05/28/2026   Paul Baranoski       Remove Informatica source modules and other variables not needed so we can migrate to new server.
-# 06/10/2026   Paul Baranoski       Change sdrc email address to datarequest@cms.hhs.gov for Part D Duals success emails.
-# 06/25/2026   Paul Baranoski       Add code so that this module works in both enigma and infa servers to prevent issues.
 #########################################################################################
 #set -x
 echo "In SET_ENV_XTR "
@@ -180,14 +178,6 @@ echo -e "\t\tCurrent Environment is : " ${ENVNAME}
 echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'   
 
 
-###############################################################
-# Determine whether infa or enig server based on hostname
-# Ex. d1-infa or d1-enig
-###############################################################
-ENIGMA_INFA_SERVER=`hostname | cut -c4-7 `
-echo "ENIGMA_INFA_SERVER=${ENIGMA_INFA_SERVER}"
-
-
 if [ $ENVNAME = 'DEV' -o $ENVNAME = 'TST' -o $ENVNAME = 'IMPL' -o $ENVNAME = 'PRD' ];
 then
     if [ $ENVNAME = 'DEV' -o $ENVNAME = 'TST' -o $ENVNAME = 'IMPL' ];
@@ -206,31 +196,23 @@ fi
 export sf_etl_warehouse=BIA_${SF_ETL_WHSE}_ETL_WKLD
 export sf_xtr_warehouse=BIA_${SF_ETL_WHSE}_XTR_WKLD
 
-# Set location of snowconvert_helpers python program
-if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-	export CMN_UTIL=/app/IDRC/COMMON/CMS/scripts/util
-else	
-	export CMN_UTIL=/app/IDRC/XTR/CMS/scripts/run
-fi
 
+#export CMN_UTIL=/app/IDRC/COMMON/CMS/scripts/util
+export CMN_UTIL=/app/IDRC/XTR/CMS/scripts/run
 
 ######################################
-#  SET IDRC_DATALAKE_AWS_ACCT value 
+#  Configures Additional Software   #
 ######################################
 if  [ ${ENVNAME} = 'DEV' ];then
-	if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-		export IDRC_DATALAKE_AWS_ACCT="772614087260" 
-	else	
-		export IDRC_DATALAKE_AWS_ACCT="779846826630"
-	fi	
+    #export IDRC_DATALAKE_AWS_ACCT="772614087260"
+    export IDRC_DATALAKE_AWS_ACCT="779846826630"
+elif [ ${ENVNAME} = 'TST' ];then
+    export IDRC_DATALAKE_AWS_ACCT="232722229861"
+elif [ ${ENVNAME} = 'IMPL' ];then
+    export IDRC_DATALAKE_AWS_ACCT="291492156955"
 elif [ ${ENVNAME} = 'PRD' ];then
-	if [ ${ENIGMA_INFA_SERVER} = "infa" ];then 
-		export IDRC_DATALAKE_AWS_ACCT="148550782651" 
-	else	
-		export IDRC_DATALAKE_AWS_ACCT="203918871088"
-	fi
+    export IDRC_DATALAKE_AWS_ACCT="148550782651"
 fi
-	
 	
 # Python Interpreter
 export PYTHON_COMMAND=python3
@@ -437,7 +419,7 @@ then
 
     export MNUP_EMAIL_SUCCESS_RECIPIENT="bit-extractalerts@index-analytics.com"
     export MNUP_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"	
-    export MNUP_EMAIL_BOX_RECIPIENT="bit-extractalerts@index-analytics.com"
+    export MNUP_EMAIL_BOX_RECIPIENT="jagadeeshwar.pagidimarri@cms.hhs.gov,emma.battista@cms.hhs.gov,monica.algozer@cms.hhs.gov,Daniel.Lee2@cms.hhs.gov,olga.yablonovsky@ssa.gov"
 	
     export NYSPAP_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
     export NYSPAP_EMAIL_SUCCESS_RECIPIENT="bit-extractalerts@index-analytics.com"
@@ -728,11 +710,11 @@ else
     export PSPSNPI_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export PTDDUALMNTH_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
-    export PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
+    export PTDDUALMNTH_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
     export PTDDUALMNTH_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export PTDDUALDAILY_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"
-    export PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,datarequest@cms.hhs.gov,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
+    export PTDDUALDAILY_EMAIL_SUCCESS_RECIPIENT="Nicole.Perry@cms.hhs.gov,SDRC@ACUMENLLC.COM,bit-extractsupport@index-analytics.com,BIT_DDOM_PO@cms.hhs.gov"
     export PTDDUALDAILY_EMAIL_FAILURE_RECIPIENT="bit-extractalerts@index-analytics.com"
 
     export RAND_FFS_EMAIL_SENDER="BIA_SUPPORT@cms.hhs.gov"

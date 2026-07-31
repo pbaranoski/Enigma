@@ -8,22 +8,32 @@
 # Created    : 3/07/2023
 #
 # Modified:
-# Viren Khanna 	2023-03-07 	New script.
+# Viren Khanna 	    2023-03-07 	New script.
 # Paul Baranoski    2024-03-12 Modify logic for extract year to be 2 years prior to current year.
 #                              Add call to create manifest file.
 #                              Add ENVNAME to SUBJECT of all emails.
 #                              Add ${TMSTMP} to temp_RAND_PARTA_Files_${TMSTMP}.txt. When Part A or B jobs
 #                              are run concurrently, the later job over-writes the temp file. The presence 
 #                              of the timestamp will all for jobs to be run concurrently.
+# Paul Baranoski    2026-05-06 Add TESTING functionality. 
 ############################################################################################################
-
 set +x
+
+#############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+swInTESTMode=${TESTING}
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=${TMSTMP=`date +%Y%m%d.%H%M%S`}
-LOGNAME=/app/IDRC/XTR/CMS/logs/RAND_PTD_Extract_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}RAND_PTD_Extract_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -34,8 +44,6 @@ chmod 666 ${LOGNAME} 2>> ${LOGNAME}
 echo "################################### " >> ${LOGNAME}
 echo "RAND_PDE_Extract.sh started at `date` " >> ${LOGNAME}
 echo "" >> ${LOGNAME}
-
-source ${RUNDIR}SET_XTR_ENV.sh
 
 source ${RUNDIR}FilenameCounts.bash
 
@@ -93,7 +101,7 @@ export DATADIR
 				echo "Python script RAND_PDE_Extract.py failed" >> ${LOGNAME}
 				
 				# Send Failure email	
-				SUBJECT="RAND_PDE_Extract.sh - Failed (${ENVNAME})"
+				SUBJECT="RAND_PDE_Extract.sh - Failed (${ENVNAME}${TESTEMAIL})"
 				MSG="RAND PDE extract has failed."
 				${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_PDE_EMAIL_SENDER}" "${RAND_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -124,7 +132,7 @@ do
 		echo "RAND_PDE_Extract.sh failed during the combine step" >> ${LOGNAME}
 
 		#Send Failure email	
-		SUBJECT="RAND PDE Extract - Failed (${ENVNAME})"
+		SUBJECT="RAND PDE Extract - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="RAND_PDE_Extract.sh failed while combining S3 files."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_PDE_EMAIL_SENDER}" "${RAND_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 		exit 12
@@ -156,7 +164,7 @@ FILE_LIST="${filenamesAndCounts}"
 echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 
-SUBJECT="RAND PDE extract (${ENVNAME})" 
+SUBJECT="RAND PDE extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The RAND PDE extract from Snowflake has completed.\n\nThe following file(s) were created:\n\n${FILE_LIST}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_PDE_EMAIL_SENDER}" "${RAND_PDE_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
@@ -166,7 +174,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Error in calling sendEmail.py" >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="Sending Success email in RAND_PDE_Extract.sh - Failed (${ENVNAME})"
+	SUBJECT="Sending Success email in RAND_PDE_Extract.sh - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Sending Success email in RAND_PDE_Extract.sh  has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${RAND_PDE_EMAIL_SENDER}" "${RAND_PDE_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -195,7 +203,7 @@ if [[ $RET_STATUS != 0 ]]; then
 		echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 		
 		# Send Failure email	
-		SUBJECT="Create Manifest file in RAND_PDE_Extract.sh - Failed (${ENVNAME})"
+		SUBJECT="Create Manifest file in RAND_PDE_Extract.sh - Failed (${ENVNAME}${TESTEMAIL})"
 		MSG="Create Manifest file in RAND_PDE_Extract.sh has failed."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${RAND_FFS_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

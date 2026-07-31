@@ -1,0 +1,34 @@
+Part B DME Query join to VMS for Submitter code:
+
+SELECT
+VMS.CLM_SBMT_FRMT_CD
+,'1' || C.CLM_CNTL_NUM AS CLM_CNTL_NUM1
+,count(*)
+ FROM IDRC_PRD.CMS_FCT_CLM_PRD.CLM C
+INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_LINE CL
+            ON  C.GEO_BENE_SK     = CL.GEO_BENE_SK
+            AND C.CLM_DT_SGNTR_SK = CL.CLM_DT_SGNTR_SK
+            AND C.CLM_TYPE_CD     = CL.CLM_TYPE_CD
+            AND C.CLM_NUM_SK      = CL.CLM_NUM_SK
+            AND C.CLM_FROM_DT     = CL.CLM_FROM_DT
+JOIN
+(SELECT C1.CLM_SBMT_FRMT_CD,C1.CLM_CNTL_NUM
+FROM IDRC_PRD.CMS_FCT_CLM_PRD.CLM C1
+INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_LINE CL1
+            ON  C1.GEO_BENE_SK     = CL1.GEO_BENE_SK
+            AND C1.CLM_DT_SGNTR_SK = CL1.CLM_DT_SGNTR_SK
+            AND C1.CLM_TYPE_CD     = CL1.CLM_TYPE_CD
+            AND C1.CLM_NUM_SK      = CL1.CLM_NUM_SK
+            AND C1.CLM_FROM_DT     = CL1.CLM_FROM_DT
+            AND C1.CLM_THRU_DT BETWEEN '2013-01-01' AND '2014-12-31'
+            AND CL1.CLM_LINE_HCPCS_CD in ('Q2046','J0178')
+                      AND  C1.CLM_TYPE_CD =2800
+                      AND C1.CLM_FINL_ACTN_IND = 'Y'
+group by 1,2
+)            VMS
+ON TRIM(CLM_CNTL_NUM1)=trim(VMS.clm_cntl_num)
+          WHERE C.CLM_TYPE_CD IN (81,82)
+            AND C.CLM_FINL_ACTN_IND = 'Y'
+            AND C.CLM_THRU_DT BETWEEN '2013-01-01' AND '2014-12-31'
+            AND CL.CLM_LINE_HCPCS_CD in ('Q2046','J0178')
+            group by 1,2 order by 1,2;

@@ -4,7 +4,6 @@
 #
 # Desc: Common module with Snowflake DB functions.
 #        NOTE: Import module into Python program to use functions.
-#        NOTE: Used by DSH_AddReqEmails.py which is called by DSH_Extracts.sh.
 #
 # Created: Paul Baranoski 03/18/2025
 # Modified:
@@ -20,9 +19,6 @@ import logging
 import sys
 import datetime
 from datetime import datetime
-
-from snowconvert_helpers import SnowflakeHelper
-
 
 import snowflake.connector
 import json
@@ -48,41 +44,6 @@ print(f"{SF_XTR_WAREHOUSE=}")
 sys.path.append(rootDirectory)
 sys.path.append(utilDirectory)
 script_name = os.path.basename(__file__)
-
-
-To create a cursor using the snowconvert_helpers Python package, you typically need to establish a connection to your Snowflake database first. The snowconvert_helpers package is designed to simplify interactions with Snowflake, and creating a cursor is a common step for executing SQL queries.
-
-Here’s an example of how you can create a cursor using the snowconvert_helpers package:
-
-Copy the code
-from snowconvert_helpers import SnowflakeHelper
-
-
-# Initialize the SnowflakeHelper with connection parameters
-helper = SnowflakeHelper(
-    user='your_username',
-    password='your_password',
-    account='your_account',
-    database='your_database',
-    schema='your_schema',
-    warehouse='your_warehouse',
-    role='your_role'
-)
-
-# Establish a connection
-connection = helper.get_connection()
-
-# Create a cursor
-cursor = connection.cursor()
-
-# Example: Execute a query
-cursor.execute("SELECT CURRENT_DATE;")
-result = cursor.fetchall()
-print(result)
-
-# Close the cursor and connection
-cursor.close()
-connection.close()
 
     
 ###############################
@@ -141,7 +102,8 @@ def getConnection():
         con = snowflake.connector.connect(user=sfCredDict['SNOW_USER'], password=sfCredDict['SNOW_PASSWORD'], 
             account=sfCredDict['SNOW_ACCOUNT'], 
             #warehouse=sfCredDict['SNOW_WAREHOUSE'], 
-            warehouse=SF_XTR_WAREHOUSE,
+            #warehouse=SF_XTR_WAREHOUSE,
+            warehouse="idrc_dev_bia_xtr_etl",
             database=sfCredDict['SNOW_DATABASE'])        
 
         #logger.info("Connected to Database!")
