@@ -9,6 +9,9 @@
 #
 # Paul Baranoski 2024-09-19 Created program.
 # Paul Baranoski 2024-09-30 Comment to trigger GitHub promotion.
+# Paul Baranoski 2026-01-27 Per IDRBI-107620 (Requirement modification: STS BB2A-Total Report), filter out 
+#                           PTA claims where the SERVICE_CD is NULL because it shows up in Totals but is not
+#                           included in Detail columns. 
 ########################################################################################################
 # IMPORTS
 ########################################################################################################
@@ -227,7 +230,7 @@ try:
                      ,C.CLM_BILL_FAC_TYPE_CD || C.CLM_BILL_CLSFCTN_CD as BILL_TYPE
                      ,CDN.CLM_NRLN_RIC_CD
                      
-                     -- SOMETIMES SERVICE_CD is NULL
+                     -- SOMETIMES SERVICE_CD is NULL; Filter out Rows where SERVICE_CD is NULL per Shine
                      ,CASE  WHEN C.CLM_TYPE_CD = '10'
                             THEN '4'
                             
@@ -281,6 +284,7 @@ try:
                 AND CDN.CLM_CWF_BENE_MDCR_STUS_CD IN ('10','11','20','21','31','40' )
 
                 AND NOT C.CLM_QUERY_CD = 'C'
+                AND NOT SERVICE_CD IS NULL
                 
                 AND C.GEO_BENE_SSA_STATE_CD = '24'
 

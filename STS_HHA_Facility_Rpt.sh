@@ -9,9 +9,18 @@
 # Created: Viren Khanna  02/10/2025
 # Modified: 
 #
-# Viren Khanna 2025-02-10 Create scripts.
+# Viren Khanna   2025-02-10 Create scripts.
+# Paul Baranoski 2026-04-08 Add TESTING functionality. 
 ######################################################################################
 set +x
+
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 #############################################################
 # Establish log file  
@@ -19,7 +28,7 @@ set +x
 TMSTMP=`date +%Y%m%d.%H%M%S`
 
 
-LOGNAME=/app/IDRC/XTR/CMS/logs/STS_HHA_Facility_Rpt_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}STS_HHA_Facility_Rpt_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -55,8 +64,6 @@ echo "   ParmOverrideDate=${ParmOverrideDate} " >> ${LOGNAME}
 #############################################################
 # Include modules 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
-
 source ${RUNDIR}FilenameCounts.bash
 
 S3BUCKET=${STS_HHA_FACILITY_BUCKET} 
@@ -104,7 +111,7 @@ else
 	echo "Not a valid processing month ${CUR_MM} " >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="STS HHA Facility Report - Failed (${ENVNAME})"
+	SUBJECT="STS HHA Facility Report - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Not a valid processing month: ${CUR_MM}"
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -148,7 +155,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Python script STS_HHA_Facility_Rpt.py failed" >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="STS HHA Facility Report - Failed (${ENVNAME})"
+	SUBJECT="STS HHA Facility Report - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Python script STS_HHA_Facility_Rpt.py failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -176,7 +183,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email." >> ${LOGNAME}
 
 # Send Success email	
-SUBJECT="STS HHA Facility Report - completed ($ENVNAME)"
+SUBJECT="STS HHA Facility Report - completed (${ENVNAME}${TESTEMAIL})"
 MSG="STS HHA Facility Report completed. \n\nThe following extract files were created:\n\n${S3Files}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${STS_HHA_FACILITY_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}"  >> ${LOGNAME} 2>&1
 
@@ -186,7 +193,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Error in calling sendEmail.py" >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="Sending Success email in STS_HHA_Facility_Rpt.sh  - Failed (${ENVNAME})"
+	SUBJECT="Sending Success email in STS_HHA_Facility_Rpt.sh  - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Sending Success email in STS_HHA_Facility_Rpt.sh has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -213,7 +220,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 	
 	# Send Failure email	
-	SUBJECT="Create Manifest file in STS_HHA_Facility_Rpt.sh - Failed (${ENVNAME})"
+	SUBJECT="Create Manifest file in STS_HHA_Facility_Rpt.sh - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="Create Manifest file in STS_HHA_Facility_Rpt.sh  has failed."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 
@@ -226,7 +233,6 @@ fi
 #############################################################
 echo "" >> ${LOGNAME} 
 echo "Remove temp files from data directory" >> ${LOGNAME} 
-
 
  
 #############################################################

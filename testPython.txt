@@ -1,0 +1,57 @@
+
+import boto3 
+from botocore.exceptions import ClientError 
+
+# Our include members
+import LoggerStandard as EnigmaLog
+from CommonFunctions import *
+
+
+global s3_client
+s3_resource = boto3.resource('s3')
+s3_client = boto3.client("s3")
+        
+		
+
+XTR_BUCKET = "aws-hhs-cms-eadg-bia-ddom-extracts"
+
+bucket_fldr = f"xtr/"
+
+#############################################################
+# Download BH file from s3
+#############################################################
+gzipDUALS_MEDADV_BH_FILE = f"DUALS_MedAdv_BH_{EXT_ST}_{CLM_PRD}_{TMSTMP}.txt.gz"
+
+downloadFileFromS3(s3_client, XTR_BUCKET, f"{DUALS_MedAdv_BUCKET_FLDR}{gzipDUALS_MEDADV_BH_FILE}", f"{DATA_DIR}{gzipDUALS_MEDADV_BH_FILE}")
+
+#############################################################
+# Unzip BH file from s3
+#############################################################
+txtUnzippedFilename = unzipFile(DATA_DIR, gzipDUALS_MEDADV_BH_FILE)
+
+#############################################################
+# Split BH file into two parts
+#############################################################
+lstOutputFilesNPaths = splitTextFileIntoMultipleFiles(f"{DATA_DIR}{txtUnzippedFilename}", 2, f"{DATA_DIR}{txtUnzippedFilename}")
+
+#############################################################
+# Move original BH file to archive directory
+#############################################################
+s3MoveLargeFile2NewFolder(s3_client, XTR_BUCKET, f"{DUALS_MedAdv_BUCKET_FLDR}{gzipDUALS_MEDADV_BH_FILE}", f"{DUALS_MedAdv_BUCKET_FLDR}archive/{gzipDUALS_MEDADV_BH_FILE}")
+
+#############################################################
+# Zip BH Split files and upload to s3
+#############################################################
+for sOutputFileNPath in lstOutputFilesNPaths:
+	sOutputFilename = sOutputFileNPath.replace(DATA_DIR,"")
+
+	#############################################################
+	# Zip BH Split file 
+	#############################################################
+	gzipSplitFilename = gzipFile(DATA_DIR, sOutputFilename)
+
+	#############################################################
+	# Upload BH Split file to s3 directory
+	#############################################################
+	s3UploadFile(s3_client, f"{DATA_DIR}{gzipSplitFilename}", XTR_BUCKET, f"{DUALS_MedAdv_BUCKET_FLDR}{gzipSplitFilename}")
+

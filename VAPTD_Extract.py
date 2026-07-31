@@ -62,6 +62,7 @@ try:
     ########################################################################################################
     snowconvert_helpers.execute_sql_statement(f"""COPY INTO @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_VAPTD_STG/MOA_VAPARTD_{QTR}_{TMSTMP}.csv.gz
             FROM (
+            
     SELECT DISTINCT
             LPAD(CL.CLM_TYPE_CD,5,'0') AS CLM_TYPE_CD,
             RPAD(SUBSTR(C.CLM_HIC_NUM,1,12),12,' ') AS BENE_HICN,

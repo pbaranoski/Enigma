@@ -10,8 +10,14 @@
 # Modified: 
 #
 # Paul Baranoski 2024-12-31 Create script.
+# Vijay Mandavilli 	2026-05-18 Updated code with testing logic.
 ######################################################################################
 set +x
+
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # Establish log file  
@@ -19,7 +25,7 @@ set +x
 TMSTMP=`date +%Y%m%d.%H%M%S`
 
 
-LOGNAME=/app/IDRC/XTR/CMS/logs/STS_PTA_BillsPymts_Rpts_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}STS_PTA_BillsPymts_Rpts_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -169,7 +175,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email." >> ${LOGNAME}
 
 # Send Success email	
-SUBJECT="STS PTA Bills Pymts Report - completed ($ENVNAME)"
+SUBJECT="STS PTA Bills Pymts Report - completed (${ENVNAME}${TESTEMAIL})"
 MSG="STS PTA Bills Pymts Report completed. \n\nThe following extract files were created:\n\n${S3Files}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${STS_PTA_BPYMTS_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}"  >> ${LOGNAME} 2>&1
 

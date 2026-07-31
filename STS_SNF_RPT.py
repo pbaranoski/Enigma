@@ -8,7 +8,8 @@
 # Created: Viren Khanna 8/27/2024
 # Modified: 
 #
-# Viren Khanna 2024-08-27 Created programs.
+# Viren Khanna    2024-08-27 Created programs.
+# Paul Baranoski  2024-10-11 Renamed extract filename node AA7 to AA8. 
 #
 ########################################################################################################
 # IMPORTS
@@ -63,59 +64,56 @@ try:
    snowconvert_helpers.execute_sql_statement("""USE WAREHOUSE ${sf_xtr_warehouse}""", con,exit_on_error = True)
 
    ## INSERT DATA INTO UTIL_EXT_RUNS TABLE ##
-   snowconvert_helpers.execute_sql_statement(f"""COPY INTO @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_STS_SNF_STG/STS_SNF_RPT_AA7_{EXT_TO_YYYY}_{RUN_PRD}_{TMSTMP}.csv.gz
+   snowconvert_helpers.execute_sql_statement(f"""COPY INTO @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_STS_SNF_STG/STS_SNF_RPT_AA8_{EXT_TO_YYYY}_{RUN_PRD}_{TMSTMP}.csv.gz
                     FROM (
 
                         WITH SNF_CLM AS (
-    SELECT C.GEO_BENE_SK
-          ,C.CLM_DT_SGNTR_SK
-          ,C.CLM_TYPE_CD
-          ,C.CLM_NUM_SK
-    
-
-      
-                             ,TO_CHAR(C.CLM_THRU_DT,'YYYY') AS CAL_YEAR
+                        
+                            SELECT C.GEO_BENE_SK
+                                  ,C.CLM_DT_SGNTR_SK
+                                  ,C.CLM_TYPE_CD
+                                  ,C.CLM_NUM_SK
+                                  ,TO_CHAR(C.CLM_THRU_DT,'YYYY') AS CAL_YEAR
         
-                             --********************************************* 
-                             -- Count claim lines as a BILL
-                             -- 0 = Credit Adj; C = Credit ?
-                             --*********************************************
-                             ,CASE WHEN C.CLM_QUERY_CD = '0' THEN -1 ELSE 1 END AS NOF_BILLS 
+                                 --********************************************* 
+                                 -- Count claim lines as a BILL
+                                 -- 0 = Credit Adj; C = Credit ?
+                                 --*********************************************
+                                 ,CASE WHEN C.CLM_QUERY_CD = '0' THEN -1 ELSE 1 END AS NOF_BILLS 
 
-          --*********************************************************** 
-          -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
-          --***********************************************************
-                             
-                  ,CASE WHEN C.CLM_QUERY_CD = '0'  
-                                             THEN CI.CLM_INSTNL_CVRD_DAY_CNT * -1
-                                             ELSE CI.CLM_INSTNL_CVRD_DAY_CNT          
-                             END AS  COVERED_DAYS   
-                                  
+                                 --*********************************************************** 
+                                 -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
+                                 --***********************************************************
+                                 ,CASE WHEN C.CLM_QUERY_CD = '0'  
+                                                             THEN CI.CLM_INSTNL_CVRD_DAY_CNT * -1
+                                                             ELSE CI.CLM_INSTNL_CVRD_DAY_CNT          
+                                             END AS  COVERED_DAYS   
+                                                      
 
-          --*********************************************************** 
-          -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
-          --***********************************************************
-                             
-                  ,CASE WHEN C.CLM_QUERY_CD = '0'  
-                                             THEN (C.CLM_SBMT_CHRG_AMT - C.CLM_NCVRD_CHRG_AMT) * -1
-                                             ELSE (C.CLM_SBMT_CHRG_AMT - C.CLM_NCVRD_CHRG_AMT)   
-                             END AS  TOTAL_CHARGES       
-          --*********************************************************** 
-          -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
-          --***********************************************************
-                             ,C.CLM_QUERY_CD
-                             ,CASE WHEN C.CLM_QUERY_CD = '0'  
-                                             THEN C.CLM_PMT_AMT * -1
-                                             ELSE C.CLM_PMT_AMT            
-                             END AS  REIMBURSEMENT_AMT
+                                 --*********************************************************** 
+                                 -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
+                                 --***********************************************************
+                                  ,CASE WHEN C.CLM_QUERY_CD = '0'  
+                                                             THEN (C.CLM_SBMT_CHRG_AMT - C.CLM_NCVRD_CHRG_AMT) * -1
+                                                             ELSE (C.CLM_SBMT_CHRG_AMT - C.CLM_NCVRD_CHRG_AMT)   
+                                             END AS  TOTAL_CHARGES    
+                                                     
+                                  --*********************************************************** 
+                                  -- If Cancel claim --> set amt to negative (back-out) ELSE use amt
+                                  --***********************************************************
+                                 ,C.CLM_QUERY_CD
+                                 ,CASE WHEN C.CLM_QUERY_CD = '0'  
+                                                 THEN C.CLM_PMT_AMT * -1
+                                                 ELSE C.CLM_PMT_AMT            
+                                 END AS  REIMBURSEMENT_AMT
 
 
-        ,C.CLM_BLG_PRVDR_OSCAR_NUM
-                             ,C.CLM_BILL_FAC_TYPE_CD || C.CLM_BILL_CLSFCTN_CD as BILL_TYPE
+                                ,C.CLM_BLG_PRVDR_OSCAR_NUM
+                                ,C.CLM_BILL_FAC_TYPE_CD || C.CLM_BILL_CLSFCTN_CD as BILL_TYPE
                              
     
     FROM IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM C
-    
+        
     
    /* INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DT_SGNTR CDS
     ON C.CLM_DT_SGNTR_SK = CDS.CLM_DT_SGNTR_SK*/
@@ -134,64 +132,61 @@ try:
               
     WHERE C.CLM_THRU_DT BETWEEN TO_DATE('{EXT_FROM_YYYY}-01-01','YYYY-MM-DD') AND TO_DATE('{EXT_TO_DATE}','YYYY-MM-DD')
     AND CDN.CLM_CWF_BENE_MDCR_STUS_CD IN ('10','11','20','21','31','40')
-AND C.CLM_TYPE_CD BETWEEN 20 AND 30
-   AND C.CLM_QUERY_CD <> 'C'
+    AND C.CLM_TYPE_CD BETWEEN 20 AND 30
+    AND C.CLM_QUERY_CD <> 'C'
+    
    )
     
-,RPT_DATA_SNF_SWING_BEDS  AS  (     
-SELECT 
-                              
-                              
-                 'SNF SWING'           AS SORT_ORD_IND  
-             , CAL_YEAR
-          ,SUM(NOF_BILLS )        AS NUMBER_OF_BILLS
-         ,ROUND(SUM(COVERED_DAYS ),0)    AS DAYS_OF_CARE
-                             ,ROUND(SUM(TOTAL_CHARGES),0)           AS TOT_AMT
-        ,CASE WHEN SUM(COVERED_DAYS) = 0
-                                   THEN 0
-                                             ELSE round(SUM(TOTAL_CHARGES) / SUM(COVERED_DAYS),0)
-                             END  AS AVERAGE_PER_DAY 
-                             ,ROUND(SUM(REIMBURSEMENT_AMT ),0)      AS AMOUNT_REIMBURSHED
-                             
-        ,CASE WHEN SUM(TOTAL_CHARGES) = 0
-                                   THEN 0
-                                             ELSE SUM(REIMBURSEMENT_AMT) / SUM(TOTAL_CHARGES)*100
-                             END  AS PERCENTAGE_OF_COVERED_CHARGES 
-
-
-                             
+    ,RPT_DATA_SNF_SWING_BEDS  AS  (  
+    
+                    SELECT 
+                         'SNF SWING'           AS SORT_ORD_IND  
+                         , CAL_YEAR
+                          ,SUM(NOF_BILLS )        AS NUMBER_OF_BILLS
+                         ,ROUND(SUM(COVERED_DAYS ),0)    AS DAYS_OF_CARE
+                                             ,ROUND(SUM(TOTAL_CHARGES),0)           AS TOT_AMT
+                        ,CASE WHEN SUM(COVERED_DAYS) = 0
+                                                   THEN 0
+                                                             ELSE round(SUM(TOTAL_CHARGES) / SUM(COVERED_DAYS),0)
+                                             END  AS AVERAGE_PER_DAY 
+                                             ,ROUND(SUM(REIMBURSEMENT_AMT ),0)      AS AMOUNT_REIMBURSHED
+                                         
+                        ,CASE WHEN SUM(TOTAL_CHARGES) = 0
+                                                   THEN 0
+                                                             ELSE SUM(REIMBURSEMENT_AMT) / SUM(TOTAL_CHARGES)*100
+                                             END  AS PERCENTAGE_OF_COVERED_CHARGES 
               FROM SNF_CLM 
    
-WHERE CLM_TYPE_CD IN  ('30')
+                WHERE CLM_TYPE_CD IN  ('30')
               
               GROUP BY SORT_ORD_IND, CAL_YEAR 
     )
     
-,RPT_DATA_TOTAL_SWING  AS  (     
-SELECT 
-                                 'SNF TOTAL'           AS SORT_ORD_IND 
-                              ,CAL_YEAR
-         ,SUM(NOF_BILLS )        AS NUMBER_OF_BILLS
-         ,ROUND(SUM(COVERED_DAYS ),0)    AS DAYS_OF_CARE
-                             ,ROUND(SUM(TOTAL_CHARGES),000)           AS TOT_AMT
-        ,CASE WHEN SUM(COVERED_DAYS) = 0
-                                   THEN 0
-                                             ELSE round(SUM(TOTAL_CHARGES) / SUM(COVERED_DAYS),0)
-                             END  AS AVERAGE_PER_DAY 
-                             ,ROUND(SUM(REIMBURSEMENT_AMT ),000)      AS AMOUNT_REIMBURSHED
-                             
-        ,CASE WHEN SUM(TOTAL_CHARGES) = 0
-                                   THEN 0
-                                             ELSE SUM(REIMBURSEMENT_AMT) / SUM(TOTAL_CHARGES)*100
-                             END  AS PERCENTAGE_OF_COVERED_CHARGES 
+,RPT_DATA_TOTAL_SWING  AS  ( 
+    
+                SELECT 
+                        'SNF TOTAL'           AS SORT_ORD_IND 
+                        ,CAL_YEAR
+                        ,SUM(NOF_BILLS )        AS NUMBER_OF_BILLS
+                        ,ROUND(SUM(COVERED_DAYS ),0)    AS DAYS_OF_CARE
+                        ,ROUND(SUM(TOTAL_CHARGES),000)           AS TOT_AMT
+                        ,CASE WHEN SUM(COVERED_DAYS) = 0
+                            THEN 0
+                                 ELSE round(SUM(TOTAL_CHARGES) / SUM(COVERED_DAYS),0)
+                            END  AS AVERAGE_PER_DAY 
+                        ,ROUND(SUM(REIMBURSEMENT_AMT ),000)      AS AMOUNT_REIMBURSHED
 
+                        ,CASE WHEN SUM(TOTAL_CHARGES) = 0
+                            THEN 0
+                                 ELSE SUM(REIMBURSEMENT_AMT) / SUM(TOTAL_CHARGES)*100
+                            END  AS PERCENTAGE_OF_COVERED_CHARGES 
                              
               FROM SNF_CLM
-    
               
               GROUP BY SORT_ORD_IND,CAL_YEAR
               
 )
+
 SELECT * FROM (
 
               SELECT *

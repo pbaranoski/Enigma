@@ -13,6 +13,7 @@
 # Joshua Turner         2024-05-21   Updated load sql to only include SSN. SSN is the only field used
 #                                    and the other fields could cause issue if not submitted right in FF.
 #                                    ! Just ensure SSN is in position 3
+# Paul Baranoski        2025-06-16   Add FORCE=TRUE
 ########################################################################################################
 # IMPORTS
 ########################################################################################################

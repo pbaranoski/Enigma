@@ -19,14 +19,27 @@
 #                              of this script to it's own process. When scheduled; Q1 will execute the finder
 #                              file load, then extract. Q2 - Q4 will execute just the extract portion. This will be controlled by rundeck
 #                              or other scheduler tool 
-# Paul Baranoski   2024-11-05  Modified ending line to be "Ended at.." because Dashboard script is looking for that to know if extract ended successfully.  
+# Paul Baranoski   2024-11-05  Modified ending line to be "Ended at.." because Dashboard script is looking for that to know if extract ended successfully.
+# Paul Baranoski   2025-01-02  Modified 'echo "" >> "Creating Manifest file for: ${VAPTD_FILE}" >> ${LOGNAME}'
+#                                    to 'echo "Creating Manifest file for: ${VAPTD_FILE}" >> ${LOGNAME}'. 
+#                              The original statement was creating a bogus filename instead of writing message to log file. 
+# Paul Baranoski   2026-04-17  Modify to add TESTING functionality. 
 ############################################################################################################
 set +x
 
 #############################################################
+# Set TESTING functionality 
+#############################################################
+TESTING="N"
+export TESTING
+
+swInTESTMode=${TESTING}
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
+
+#############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
 #############################################################
-source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -34,7 +47,7 @@ DATADIR=/app/IDRC/XTR/CMS/data/
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/VAPTD_Driver_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}VAPTD_Driver_${TMSTMP}.log
 touch ${LOGNAME}
 chmod 666 ${LOGNAME} 2>> ${LOGNAME} 
 
@@ -75,7 +88,7 @@ else
 	echo "Processing completed." >> ${LOGNAME}
 
 	# Send failure email
-	SUBJECT="VAPTD_Driver.sh - FAILED ($ENVNAME)"
+	SUBJECT="VAPTD_Driver.sh - FAILED (${ENVNAME}${TESTEMAIL})"
 	MSG="Extract is processed quarterly for months March, June, September, and December. Extract is not scheduled to run for this time period."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 	
@@ -108,7 +121,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Python script VAPTD_Extract.py failed." >> ${LOGNAME}
 	
 	# Send failure email
-	SUBJECT="VA Part D Extract FAILED ($ENVNAME)"
+	SUBJECT="VA Part D Extract FAILED (${ENVNAME}${TESTEMAIL})"
 	MSG="VA Part D Extract has failed in VAPTD_Driver.sh."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 	exit 12
@@ -129,7 +142,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Shell script CombineS3Files.sh failed." >> ${LOGNAME}
 	
 	# Send failure email
-	SUBJECT="VA Part D concatenation FAILED ($ENVNAME)"
+	SUBJECT="VA Part D concatenation FAILED (${ENVNAME}${TESTEMAIL})"
 	MSG="VA Part D Extract has failed in VAPTD_Driver.sh."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 	exit 12
@@ -149,9 +162,9 @@ S3Files="${filenamesAndCounts}"
 ###########################################################################################
 # Send Success Email
 ###########################################################################################
-echo ""
+echo "" >> ${LOGNAME}
 echo "Sending success email" >> ${LOGNAME}
-SUBJECT="VA Part D Extract Complete ($ENVNAME)"
+SUBJECT="VA Part D Extract Complete (${ENVNAME}${TESTEMAIL})"
 MSG="VA Part D quarterly extract completed successfully.\n\nThe following file was generated:\n\n ${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
@@ -161,7 +174,7 @@ ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_S
 # Create manifest file for Box delivery (Supply ManifestFileFolder override parameter).
 ###########################################################################################
 echo "" >> ${LOGNAME}
-echo "" >> "Creating Manifest file for: ${VAPTD_FILE}" >> ${LOGNAME}
+echo "Creating Manifest file for: ${VAPTD_FILE}" >> ${LOGNAME}
 
 ${RUNDIR}CreateManifestFile.sh ${VAPTD_BUCKET} ${TMSTMP} ${VAPTD_EMAIL_BOX_RECIPIENT} ${MANIFEST_VA_PBM_BUCKET}
 
@@ -171,7 +184,7 @@ if [[ $RET_STATUS != 0 ]]; then
 	echo "Shell script CreateManifestFile.sh failed." >> ${LOGNAME}
 	
 	# Send failure email
-	SUBJECT="Create Manifest file in VAPTD_Driver.sh - Failed ($ENVNAME)"
+	SUBJECT="Create Manifest file in VAPTD_Driver.sh - Failed (${ENVNAME}${TESTEMAIL})"
 	MSG="VA Part D Extract has failed in the CreateManifestFile step of VAPTD_Driver.sh."
 	${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VAPTD_EMAIL_SENDER}" "${VAPTD_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 	exit 12

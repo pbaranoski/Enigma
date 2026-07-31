@@ -202,7 +202,7 @@ fi
 echo "" >> ${LOGNAME}
 echo "Create Manifest file for STS HHA RevCtr Report.  " >> ${LOGNAME}
 
-${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${STS_HHA_BOX_RECIPIENT} 
+${RUNDIR}CreateManifestFile.sh ${S3BUCKET} ${TMSTMP} ${STS_HHA_REV_CTR_BOX_RECIPIENT} 
 
 
 #############################################################

@@ -17,7 +17,7 @@
 # Paul Baranoski   2025-01-29  Update CMS_EMAIL_SENDER to CMS_EMAIL_SENDER.
 #                              Update ENIGMA_EMAIL_FAILURE_RECIPIENT to ENIGMA_EMAIL_FAILURE_RECIPIENT.
 # Paul Baranoski   2025-02-04  Modify Email constants to use CMS_EMAIL_SENDER and ENIGMA_EMAIL_FAILURE_RECIPIENT.
-# Paul Baranoski   2025-08-14  Add EFT filename mask info to success email.
+# Paul Baranoski   2025-12-03  Added log messages when RC = 4 (No Finder Files) so Dashboard logic will say run was successful.
 ############################################################################################################
 
 set +x
@@ -83,6 +83,12 @@ if [[ $RET_STATUS != 0 ]]; then
 		SUBJECT="LOAD_TRICARE_FNDR_FILE.sh ended. No Finder Files found. (${ENVNAME})"
 		MSG="LOAD_TRICARE_FNDR_FILE.sh ended. No Finder Files found."
 		${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${ENIGMA_EMAIL_FAILURE_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
+
+		echo "" >> ${LOGNAME}
+		echo "TRICARE_extract.sh completed successfully." >> ${LOGNAME}
+
+		echo "Ended at `date` " >> ${LOGNAME}
+		echo "" >> ${LOGNAME}
 
 		exit 4	
 	else
@@ -153,7 +159,7 @@ echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
 SUBJECT="Weekly TRICARE extract (${ENVNAME})" 
-MSG="The Extract for the creation of the weekly TRICARE file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${S3Files}\n\nAn EFT version of the file was created using the following file mask P#EFT.ON.V0067.RSP{SPLTNO}.{TIMESTAMP}."
+MSG="The Extract for the creation of the weekly TRICARE file from Snowflake has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${TRICARE_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

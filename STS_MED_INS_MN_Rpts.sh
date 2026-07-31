@@ -3,7 +3,7 @@
 ######################################################################################
 # Name:  STS_MED_INS_MN_Rpts.sh
 #
-# DESC:   This script extracts data for STS Medical Insureance table report - NOF Bills; Amt Reimbursed 
+# DESC:   This script extracts data for STS Medical Insurance Minnesota report - NOF Bills; Amt Reimbursed 
 #         by period expense (legacy BB2A report)#
 #
 # Created: Paul Baranoski  09/19/2024
@@ -11,8 +11,14 @@
 #
 # Paul Baranoski 2024-09-19 Create script.
 # Paul Baranoski 2024-09-30 Comment to trigger GitHub promotion.
+# Vijay Mandavilli 	2026-05-14 Updated code with testing logic.
 ######################################################################################
 set +x
+
+TESTING="N"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # Establish log file  
@@ -20,7 +26,7 @@ set +x
 TMSTMP=`date +%Y%m%d.%H%M%S`
 
 
-LOGNAME=/app/IDRC/XTR/CMS/logs/STS_MED_INS_MN_Rpts_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}STS_MED_INS_MN_Rpts_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
 
@@ -163,13 +169,13 @@ S3Files="${filenamesAndCounts}"
 
 
 #############################################################
-# Send success email of STS MED INS Tbl Rpt files
+# Send success email of STS MED INS MN Rpt files
 #############################################################
 echo "" >> ${LOGNAME}
 echo "Send success email." >> ${LOGNAME}
 
 # Send Success email	
-SUBJECT="STS MED INS Tbl Report - completed ($ENVNAME)"
+SUBJECT="STS MED INS MN Report - completed (${ENVNAME}${TESTEMAIL})"
 MSG="STS Medical Insurance Minnesota Report completed. \n\nThe following extract files were created:\n\n${S3Files}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${CMS_EMAIL_SENDER}" "${STS_MED_INS_MN_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}"  >> ${LOGNAME} 2>&1
 

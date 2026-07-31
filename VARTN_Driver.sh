@@ -16,8 +16,17 @@
 # Sean Whitelock        2024-09-24   Updated the parameter for S3 manifest folder override call.
 # Paul Baranoski        2024-11-05   Modified ending line to be "Ended at.." because Dashboard script is looking for that to know if extract ended successfully.  
 # Paul Baranoski        2024-12-23   Add this line to re-migrate code due to "SSM agent on Jenkins server" was down.
-############################################################################################################
+# Paul Baranoski        2026-06-10   Modified 'echo "" >> echo "Creating Manifest file for: ${VARTN_FILE}" >> ${LOGNAME}'
+#                                    to 'echo "Creating Manifest file for: ${VARTN_FILE}" >> ${LOGNAME}'.
+#                                    This was causing a file to be created in scripts/run with that string as the filename.
+# Viren Khanna       	2026-05-18  Updated code with testing logic.
+######################################################################################
 set +x
+
+TESTING="Y"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh 
 
 #############################################################
 # THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
@@ -28,7 +37,7 @@ RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/VARTN_Driver_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}VARTN_Driver_${TMSTMP}.log
 touch ${LOGNAME}
 chmod 666 ${LOGNAME} 2>> ${LOGNAME} 
 
@@ -39,7 +48,8 @@ echo "" >> ${LOGNAME}
 #############################################################
 # Establish Date Parameters  
 #############################################################
-YEAR=`date +%Y`
+##YEAR=`date +%Y`
+YEAR=$((`date +%Y` - 1))
 
 echo "VA Return File Extract Processing with the following dates:" >> ${LOGNAME}
 echo "YEAR: ${YEAR}" >> ${LOGNAME}
@@ -98,7 +108,7 @@ fi
 # Create manifest file for Box delivery (Supply ManifestFileFolder override parameter).
 ###########################################################################################
 echo "" >> ${LOGNAME}
-echo "" >> "Creating Manifest file for: ${VARTN_FILE}" >> ${LOGNAME}
+echo "Creating Manifest file for: ${VARTN_FILE}" >> ${LOGNAME}
 
 ${RUNDIR}CreateManifestFile.sh ${VARTN_BUCKET} ${TMSTMP} ${VAPTD_EMAIL_BOX_RECIPIENT} ${MANIFEST_VA_MAC_BUCKET}
 
@@ -119,7 +129,7 @@ fi
 ###########################################################################################
 echo ""
 echo "Sending success email" >> ${LOGNAME}
-SUBJECT="VA RETURN ANNUAL EXTRACT : ${YEAR} ($ENVNAME)"
+SUBJECT="VA RETURN ANNUAL EXTRACT : ${YEAR} ($ENVNAME)${TESTEMAIL}"
 MSG="THE ANNUAL VA RETURN EXTRACTS HAVE BEEN COMPLETED.\n\n======================================================================\n\nFile Name						No of Records\n=========================================	=======================\n${VARTN_FILE}	${NO_OF_RECS}"
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${VARTN_EMAIL_SENDER}" "${VARTN_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1
 

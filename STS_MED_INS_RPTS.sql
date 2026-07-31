@@ -1,75 +1,3 @@
-#!/usr/bin/env python
-########################################################################################################
-# Name:   STS_MED_INS_Tbl_Rpts.py
-# DESC:   This script extracts data for STS Medical Insureance table report - NOF Bills; Amt Reimbursed 
-#         by period expense (legacy BB2A report)
-#
-# Created: Paul Baranoski 8/09/2024
-# Modified: 
-#
-# Paul Baranoski 2024-08-09 Created program.
-# Paul Baranoski 2024-08-29 Modify SQL for better performance.
-# Paul Baranoski 2026-01-27 Per IDRBI-107620 (Requirement modification: STS BB2A-Total Report), filter out 
-#                           PTA claims where the SERVICE_CD is NULL because it shows up in Totals but is not 
-#                           included in Detail columns. 
-########################################################################################################
-# IMPORTS
-########################################################################################################
-import os
-import sys
-import datetime
-from datetime import datetime
-
-currentDirectory = os.path.dirname(os.path.realpath(__file__))
-rootDirectory = os.path.abspath(os.path.join(currentDirectory, ".."))
-utilDirectory = os.getenv('CMN_UTIL')
-
-sys.path.append(rootDirectory)
-sys.path.append(utilDirectory)
-
-
-import snowconvert_helpers
-from snowconvert_helpers import Export
-
-########################################################################################################
-# VARIABLE ASSIGNMENT
-########################################################################################################
-script_name = os.path.basename(__file__)
-con = None 
-now = datetime.now()
-date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-
-ENVNAME=os.getenv('ENVNAME')
-TMSTMP=os.getenv('TMSTMP')
-
-RUN_PRD=os.getenv('RUN_PRD')
-EXT_TO_DATE=os.getenv('EXT_TO_DATE')
-print("before EXT_TO_YYYY")
-EXT_TO_YYYY=EXT_TO_DATE[:4]
-EXT_FROM_YYYY=os.getenv('EXT_FROM_YYYY')
-
-
-
-# boolean - Python Exception status
-bPythonExceptionOccurred=False
-
-########################################################################################################
-# RUN
-########################################################################################################
-print('')
-print("Run date and time: " + date_time  )
-print
-
-try:
-   snowconvert_helpers.configure_log()
-   con = snowconvert_helpers.log_on()
-   snowconvert_helpers.execute_sql_statement(f"alter session set query_tag='{script_name}'",con,exit_on_error = True)
-   snowconvert_helpers.execute_sql_statement("""USE WAREHOUSE ${sf_xtr_warehouse}""", con,exit_on_error = True)
-
-   ## INSERT DATA INTO UTIL_EXT_RUNS TABLE ##
-   snowconvert_helpers.execute_sql_statement(f"""COPY INTO @BIA_{ENVNAME}.CMS_STAGE_XTR_{ENVNAME}.BIA_{ENVNAME}_XTR_STS_MED_INS_STG/STS_MED_INS_RPT_BB2A_{EXT_TO_YYYY}_{RUN_PRD}_{TMSTMP}.csv.gz
-                    FROM (
-
             WITH SERVICE_CATEGORIES AS (
 
                 SELECT '0' AS SERVICE_CD,'Total'                  AS SERVICE_DESC FROM DUAL
@@ -88,53 +16,53 @@ try:
 
             ,RPT_YEARS AS (
  
-                SELECT {EXT_TO_YYYY}     AS CAL_YEAR FROM DUAL 
+                SELECT 2025     AS CAL_YEAR FROM DUAL 
                 UNION 
-                SELECT {EXT_TO_YYYY} - 1 AS CAL_YEAR FROM DUAL 
+                SELECT 2025 - 1 AS CAL_YEAR FROM DUAL 
                 UNION 
-                SELECT {EXT_TO_YYYY} - 2 AS CAL_YEAR FROM DUAL 
+                SELECT 2025 - 2 AS CAL_YEAR FROM DUAL 
                 UNION 
-                SELECT {EXT_TO_YYYY} - 3 AS CAL_YEAR FROM DUAL 
+                SELECT 2025 - 3 AS CAL_YEAR FROM DUAL 
                 UNION 
-                SELECT {EXT_TO_YYYY} - 4 AS CAL_YEAR FROM DUAL
+                SELECT 2025 - 4 AS CAL_YEAR FROM DUAL
                 UNION 
-                SELECT {EXT_TO_YYYY} - 5 AS CAL_YEAR FROM DUAL
+                SELECT 2025 - 5 AS CAL_YEAR FROM DUAL
                 UNION 
-                SELECT {EXT_TO_YYYY} - 6 AS CAL_YEAR FROM DUAL
+                SELECT 2025 - 6 AS CAL_YEAR FROM DUAL
                           
             )
 
             ,RPT_STATES    AS (
 
                 SELECT GEO_SSA_STATE_CD, GEO_SSA_STATE_NAME AS GEO_STATE_NAME, '1' AS SORT_ORD_IND
-                FROM IDRC_{ENVNAME}.CMS_DIM_GEO_{ENVNAME}.GEO_SSA_STATE_CD
+                FROM IDRC_PRD.CMS_DIM_GEO_PRD.GEO_SSA_STATE_CD
                 WHERE GEO_SSA_STATE_CD BETWEEN '01' AND '53'
                          
                 UNION
                           
                 SELECT DISTINCT COALESCE(GEO_SSA_STATE_CD,'  '), 'FOREIGN COUNTRIES', '2' AS SORT_ORD_IND
-                FROM IDRC_{ENVNAME}.CMS_DIM_GEO_{ENVNAME}.GEO_SSA_STATE_CD
+                FROM IDRC_PRD.CMS_DIM_GEO_PRD.GEO_SSA_STATE_CD
                 WHERE GEO_SSA_STATE_CD BETWEEN '54' AND '62' 
                           
                 UNION
                           
                 -- US Possessions, America Samoa, NORTHERN MARIANA, SAIPAN
                 SELECT DISTINCT COALESCE(GEO_SSA_STATE_CD,'  '), 'OTHER OUTLYING AREAS', '3' AS SORT_ORD_IND
-                FROM IDRC_{ENVNAME}.CMS_DIM_GEO_{ENVNAME}.GEO_SSA_STATE_CD
+                FROM IDRC_PRD.CMS_DIM_GEO_PRD.GEO_SSA_STATE_CD
                 WHERE GEO_SSA_STATE_CD IN ('63','64','66','97') 
 
                 UNION
                           
                 -- Guam             
                 SELECT GEO_SSA_STATE_CD, GEO_SSA_STATE_NAME, '4' AS SORT_ORD_IND
-                FROM IDRC_{ENVNAME}.CMS_DIM_GEO_{ENVNAME}.GEO_SSA_STATE_CD
+                FROM IDRC_PRD.CMS_DIM_GEO_PRD.GEO_SSA_STATE_CD
                 WHERE GEO_SSA_STATE_CD IN ('65','98')
                           
                 UNION
                           
                 -- Unknown (67 thru 96 missing from GEO_SSA_STATE_CD 
                 SELECT COALESCE(GEO_SSA_STATE_CD,'99'), 'RESIDENCE UNKNOWN', '5' AS SORT_ORD_IND
-                FROM IDRC_{ENVNAME}.CMS_DIM_GEO_{ENVNAME}.GEO_SSA_STATE_CD
+                FROM IDRC_PRD.CMS_DIM_GEO_PRD.GEO_SSA_STATE_CD
                 WHERE GEO_SSA_STATE_CD BETWEEN '67' AND '96'
                 OR GEO_SSA_STATE_CD IN ('99','~ ', 'UK')
                           
@@ -191,32 +119,32 @@ try:
                         END AS SERVICE_CD     
 
 
-                FROM IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM  C  
+                FROM IDRC_PRD.CMS_FCT_CLM_PRD.CLM  C  
 
-                INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DCMTN  CDN
+                INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_DCMTN  CDN
                 ON  C.GEO_BENE_SK     = CDN.GEO_BENE_SK
                 AND C.CLM_DT_SGNTR_SK = CDN.CLM_DT_SGNTR_SK
                 AND C.CLM_TYPE_CD     = CDN.CLM_TYPE_CD
                 AND C.CLM_NUM_SK      = CDN.CLM_NUM_SK
 
-                INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE  CL
+                INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_LINE  CL
                 ON  C.GEO_BENE_SK     = CL.GEO_BENE_SK
                 AND C.CLM_DT_SGNTR_SK = CL.CLM_DT_SGNTR_SK
                 AND C.CLM_TYPE_CD     = CL.CLM_TYPE_CD
                 AND C.CLM_NUM_SK      = CL.CLM_NUM_SK
                 AND C.CLM_FROM_DT     = CL.CLM_FROM_DT
                 
-                INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_LINE_PRFNL  CLP
+                INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_LINE_PRFNL  CLP
                 ON  CL.GEO_BENE_SK     = CLP.GEO_BENE_SK
                 AND CL.CLM_DT_SGNTR_SK = CLP.CLM_DT_SGNTR_SK
                 AND CL.CLM_TYPE_CD     = CLP.CLM_TYPE_CD
                 AND CL.CLM_NUM_SK      = CLP.CLM_NUM_SK
                 AND CL.CLM_LINE_NUM    = CLP.CLM_LINE_NUM 
 
-                INNER JOIN IDRC_{ENVNAME}.CMS_DIM_CLM_CD_{ENVNAME}.CLM_CNTRCTR_NUM  CARR
+                INNER JOIN IDRC_PRD.CMS_DIM_CLM_CD_PRD.CLM_CNTRCTR_NUM  CARR
                 ON CARR.CLM_CNTRCTR_NUM = C.CLM_CNTRCTR_NUM
 
-                WHERE C.CLM_THRU_DT BETWEEN TO_DATE('{EXT_FROM_YYYY}-01-01','YYYY-MM-DD') AND TO_DATE('{EXT_TO_DATE}','YYYY-MM-DD')
+                WHERE C.CLM_THRU_DT BETWEEN TO_DATE('2020-01-01','YYYY-MM-DD') AND TO_DATE('2025-12-31','YYYY-MM-DD')
                   AND C.CLM_TYPE_CD BETWEEN 71 and 82
                   AND CDN.CLM_NRLN_RIC_CD IN ('O','M')
                   -- O = Part B physician/supplier claim record (processed by local carriers; can include DMEPOS services)
@@ -292,18 +220,18 @@ try:
                             THEN '4'
                        END  AS SERVICE_CD
                 
-                FROM IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM  C
+                FROM IDRC_PRD.CMS_FCT_CLM_PRD.CLM  C
                 
-                INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DT_SGNTR  CDS
+                INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_DT_SGNTR  CDS
                 ON C.CLM_DT_SGNTR_SK = CDS.CLM_DT_SGNTR_SK
 
-                INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_DCMTN  CDN
+                INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_DCMTN  CDN
                 ON  C.GEO_BENE_SK     = CDN.GEO_BENE_SK
                 AND C.CLM_DT_SGNTR_SK = CDN.CLM_DT_SGNTR_SK
                 AND C.CLM_TYPE_CD     = CDN.CLM_TYPE_CD
                 AND C.CLM_NUM_SK      = CDN.CLM_NUM_SK
                           
-                WHERE C.CLM_THRU_DT BETWEEN TO_DATE('{EXT_FROM_YYYY}-01-01','YYYY-MM-DD') AND TO_DATE('{EXT_TO_DATE}','YYYY-MM-DD')
+                WHERE C.CLM_THRU_DT BETWEEN TO_DATE('2020-01-01','YYYY-MM-DD') AND TO_DATE('2025-12-31','YYYY-MM-DD')
                 AND CDN.CLM_NRLN_RIC_CD IN ('W','U')
                 -- W = Part B institutional claim record (outpatient (OP), HHA)
 	            -- U = Both Part A and B institutional home health agency (HHA) claim records -- due to HHPPS and HHA A/B split.
@@ -335,7 +263,7 @@ try:
                                                
                   FROM PARTA_DTL_CLMS C
 
-                  INNER JOIN IDRC_{ENVNAME}.CMS_FCT_CLM_{ENVNAME}.CLM_VAL VAL
+                  INNER JOIN IDRC_PRD.CMS_FCT_CLM_PRD.CLM_VAL VAL
                   ON  C.GEO_BENE_SK     = VAL.GEO_BENE_SK
                   AND C.CLM_DT_SGNTR_SK = VAL.CLM_DT_SGNTR_SK
                   AND C.CLM_TYPE_CD     = VAL.CLM_TYPE_CD
@@ -686,26 +614,3 @@ try:
             )
 
             ORDER BY SORT_ORD_IND, GEO_STATE_NAME, CAL_YEAR
-    
- )
-            FILE_FORMAT = (TYPE = CSV field_delimiter=','  ESCAPE_UNENCLOSED_FIELD=NONE FIELD_OPTIONALLY_ENCLOSED_BY = none )
-            SINGLE=TRUE  HEADER=TRUE  max_file_size=5368709120  """, con, exit_on_error=True)
-
-    
-   snowconvert_helpers.quit_application()
-
-except Exception as e:
-   print(e)
-
-   # Let shell script know that python code failed.
-   bPythonExceptionOccurred=True  
-
-finally:
-   if con is not None:
-      con.close()
-
-   # Let shell script know that python code failed.      
-   if bPythonExceptionOccurred == True:
-      sys.exit(12) 
-   else:   
-      snowconvert_helpers.quit_application()
