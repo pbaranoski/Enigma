@@ -51,6 +51,9 @@
 # 12/31/2024 Paul Baranoski   Add carat in grep statement to get jiraEntry. Even though I should only get one match, the code appears to be getting two matches.
 # 01/06/2025 Paul Baranoski   Remove obsolete code: 1) FileSize logic, and 2) modify code to call new CreateManifestFilev2.py module.
 # 01/29/2025 Paul Baranoski   Add echos for passed parm values when incorrect # of parms passed. 
+# 12/19/2025 Paul Baranoski   Remove JIRA ticket logic. Will replace with literal 'BIT'.
+# 01/14/2026 Paul Baranoski   Add logic to retrieve "TESTING" environment variable. Modify if statement that if HoldManifestFile = "Y" OR swTESTING = "Y", then
+#                             place manifest file in s3://manifest_files_hold folder.
 ############################################################################################################
 
 set +x
@@ -61,6 +64,7 @@ set +x
 #TMSTMP = If TMSTMP value set by caller via export --> use that value. 
 #         Else use the timestamp created in this script
 TMSTMP=${TMSTMP:=`date +%Y%m%d.%H%M%S`}
+swTESTING=${TESTING:='N'}
 
 LOGNAME=/app/IDRC/XTR/CMS/logs/CreateManifestFile_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
@@ -109,6 +113,10 @@ echo "   S3FilenameTmstmp=${S3FilenameTmstmp} " >> ${LOGNAME}
 echo "   RecipientEmails=${RecipientEmails} " >> ${LOGNAME}
 echo "   MANIFEST_BUCKET_OVERRIDE=${MANIFEST_BUCKET_OVERRIDE} " >> ${LOGNAME}
 echo "   ExtractTypeOverride=${ExtractTypeOverride} " >> ${LOGNAME}
+
+echo ""  >> ${LOGNAME}
+echo "   swTESTING=${swTESTING}"  >> ${LOGNAME}
+echo ""  >> ${LOGNAME}
 
 
 #############################################################
@@ -172,40 +180,40 @@ echo "ExtractType=${ExtractType}" >> ${LOGNAME}
 #############################################################
 # functions
 #############################################################
-function findDOJFOIAJiraTicketMatch {
-
-	echo "In function findDOJFOIAJiraTicketMatch " >> ${LOGNAME}
+##function findDOJFOIAJiraTicketMatch {
+##
+##	echo "In function findDOJFOIAJiraTicketMatch " >> ${LOGNAME}
+##	
+##	p_ExtractType=$1
+##	S3ExtractFilename=$2
+##	MatchingKey=""
+##	
+##	echo "p_ExtractType=${p_ExtractType}" >> ${LOGNAME}
+##	echo "S3ExtractFilename=${S3ExtractFilename}" >> ${LOGNAME}
 	
-	p_ExtractType=$1
-	S3ExtractFilename=$2
-	MatchingKey=""
+##	# Get all the DOJ JIRA keys Ex. (DOJ_ANTI_TRUST1, DOJ_USA_V_KINDRED, DOJ_ABBOTT
+##	DOJ_FOIA_KEYS=`cat ${DATADIR}${JIRA_MAPPING_FILE} | sed 's/\r//' | cut -d= -f1  | grep "${p_ExtractType}" `
+##	echo "DOJ_FOIA_KEYS=${DOJ_FOIA_KEYS}"  >> ${LOGNAME}
+##	echo ""  >> ${LOGNAME}
 	
-	echo "p_ExtractType=${p_ExtractType}" >> ${LOGNAME}
-	echo "S3ExtractFilename=${S3ExtractFilename}" >> ${LOGNAME}
-	
-	# Get all the DOJ JIRA keys Ex. (DOJ_ANTI_TRUST1, DOJ_USA_V_KINDRED, DOJ_ABBOTT
-	DOJ_FOIA_KEYS=`cat ${DATADIR}${JIRA_MAPPING_FILE} | sed 's/\r//' | cut -d= -f1  | grep "${p_ExtractType}" `
-	echo "DOJ_FOIA_KEYS=${DOJ_FOIA_KEYS}"  >> ${LOGNAME}
-	echo ""  >> ${LOGNAME}
-	
-	# And match filename to DOJ/FOIA key 
-	for DOJ_FOIA_KEY in ${DOJ_FOIA_KEYS}
-	do
-		echo "DOJ_FOIA_KEY=${DOJ_FOIA_KEY}"  >> ${LOGNAME}
+##	# And match filename to DOJ/FOIA key 
+##	for DOJ_FOIA_KEY in ${DOJ_FOIA_KEYS}
+##	do
+##		echo "DOJ_FOIA_KEY=${DOJ_FOIA_KEY}"  >> ${LOGNAME}
 		
-		keyMatch=`echo "${S3ExtractFilename}" | grep "${DOJ_FOIA_KEY}" `
+##		keyMatch=`echo "${S3ExtractFilename}" | grep "${DOJ_FOIA_KEY}" `
 		
-		# if key matches extract filename	
-		if [ -n "$keyMatch" ];then
-			MatchingKey=${DOJ_FOIA_KEY}
-			break
-		fi
-	done
+##		# if key matches extract filename	
+##		if [ -n "$keyMatch" ];then
+##			MatchingKey=${DOJ_FOIA_KEY}
+##			break
+##		fi
+##	done
 	
-	echo "MatchingKey=${MatchingKey}" >> ${LOGNAME}
+##	echo "MatchingKey=${MatchingKey}" >> ${LOGNAME}
 	
-	echo "Leaving function findDOJJiraTicketMatch " >> ${LOGNAME}
-}
+##	echo "Leaving function findDOJJiraTicketMatch " >> ${LOGNAME}
+##}
 
 
 #############################################################
@@ -250,67 +258,92 @@ echo "S3Files=${S3Files}" >> ${LOGNAME}
 #############################################################
 # Download JIRA_Extract_Mappings.txt file to Linux.
 #############################################################
-echo "" >> ${LOGNAME}
+##echo "" >> ${LOGNAME}
 
-## Copy JIRA mapping file to Linux
-aws s3 cp s3://${CONFIG_BUCKET}${JIRA_MAPPING_FILE} ${DATADIR}${JIRA_MAPPING_FILE}   1>> ${LOGNAME} 2>&1
-
-RET_STATUS=$?
-
-if [[ $RET_STATUS != 0 ]]; then
-	echo "" >> ${LOGNAME}
-	echo "Copying ${CONFIG_BUCKET}${JIRA_MAPPING_FILE} from S3 to Linux failed." >> ${LOGNAME}
-
-	exit 12
-fi	
+#### Copy JIRA mapping file to Linux
+##aws s3 cp s3://${CONFIG_BUCKET}${JIRA_MAPPING_FILE} ${DATADIR}${JIRA_MAPPING_FILE}   1>> ${LOGNAME} 2>&1
+##
+##RET_STATUS=$?
+##
+##if [[ $RET_STATUS != 0 ]]; then
+##	echo "" >> ${LOGNAME}
+##	echo "Copying ${CONFIG_BUCKET}${JIRA_MAPPING_FILE} from S3 to Linux failed." >> ${LOGNAME}
+##
+##	exit 12
+##fi	
 
 
 #############################################################
+# !!!!! OBSOLETE
 # Extract JIRA URL for Extract type
 # NOTE: Perform "exception" logic for DOJ or FOIA JIRA tickets.
 #       Match each JIRA_MAPPING_FILE DOJ-JIRA-ticket entry to the filename
 #############################################################
-if [ "${ExtractType}" = "DOJ" ] || [ "${ExtractType}" = "FOIA" ];then
-	echo "Look for DOJ Jira ticket entry"   >> ${LOGNAME}
-	findDOJFOIAJiraTicketMatch "${ExtractType}" "${S3Files}"
-	if [ "${MatchingKey}" = "" ];then
-		echo "" >> ${LOGNAME}
-		echo "No MatchingKey found for filename ${S3ExtractFilename}" >> ${LOGNAME}
+#if [ "${ExtractType}" = "DOJ" ] || [ "${ExtractType}" = "FOIA" ];then
+	#echo "Look for DOJ Jira ticket entry"   >> ${LOGNAME}
+	#findDOJFOIAJiraTicketMatch "${ExtractType}" "${S3Files}"
+	#if [ "${MatchingKey}" = "" ];then
+	#	echo "" >> ${LOGNAME}
+	#	echo "No MatchingKey found for filename ${S3ExtractFilename}" >> ${LOGNAME}
 
-		exit 12	
-	fi
+	#	exit 12	
+	#fi
+#else
+#	echo "Look for non-DOJ-FOIA Jira ticket entry"   >> ${LOGNAME}
+#	MatchingKey=${ExtractType}
+#fi
+
+#############################################################
+# Buid HLQ nodes for Manifest Filename.
+#############################################################
+if [ "${ExtractType}" = "DOJ" ] || [ "${ExtractType}" = "FOIA" ];then
+
+	# Get one filename from list of files
+	ExtFilename=`echo ${S3Files} | cut -d, -f1 `  2>> ${LOGNAME}
+	echo 'ExtFilename=${ExtFilename}' >> ${LOGNAME}
+	
+	# Example: DOJ_ABBOTT_HICN_20240927.132311.txt.gz
+	ExtReqFirst3Nodes=`echo ${ExtFilename} | cut -d_ -f1-3 `
+	echo 'ExtReqFirst3Nodes=${ExtReqFirst3Nodes}' >> ${LOGNAME}	
+	ManifestHLQ=${ExtReqFirst3Nodes}
+
 else
 	echo "Look for non-DOJ-FOIA Jira ticket entry"   >> ${LOGNAME}
-	MatchingKey=${ExtractType}
+	ManifestHLQ=${ExtractType}
 fi
 
-echo "Find matching entry in JIRA_MAPPING_FILE for ${MatchingKey}"   >> ${LOGNAME}
 
-# Find matching entry in JIRA_MAPPING_FILE
-jiraEntry=`grep "^${MatchingKey}=" ${DATADIR}${JIRA_MAPPING_FILE} | sed 's/\r//' `  2>> ${LOGNAME}
+#############################################################
+# Find Config entry to get JIRA ticket number.
+#############################################################
+##echo "Find matching entry in JIRA_MAPPING_FILE for ${MatchingKey}"   >> ${LOGNAME}
 
-if [ -z ${jiraEntry:=""}  ]; then
-	echo "" >> ${LOGNAME}
-	echo "${JIRA_MAPPING_FILE} missing Extract Type ${MatchingKey} mapping." >> ${LOGNAME}
+### Find matching entry in JIRA_MAPPING_FILE
+##jiraEntry=`grep "^${MatchingKey}=" ${DATADIR}${JIRA_MAPPING_FILE} | sed 's/\r//' `  2>> ${LOGNAME}
 
-	exit 12
-fi
+##if [ -z ${jiraEntry:=""}  ]; then
+##	echo "" >> ${LOGNAME}
+##	echo "${JIRA_MAPPING_FILE} missing Extract Type ${MatchingKey} mapping." >> ${LOGNAME}
 
-jiraURL=`echo "${jiraEntry}" | cut -d= -f2 `
+##	exit 12
+##fi
 
-if [ -z ${jiraURL:=""} ]; then
-	echo "" >> ${LOGNAME}
-	echo "${JIRA_MAPPING_FILE} missing JIRA URL for Extract Type ${MatchingKey}." >> ${LOGNAME}
+##jiraURL=`echo "${jiraEntry}" | cut -d= -f2 `
 
-	exit 12
-fi
+##if [ -z ${jiraURL:=""} ]; then
+##	echo "" >> ${LOGNAME}
+##	echo "${JIRA_MAPPING_FILE} missing JIRA URL for Extract Type ${MatchingKey}." >> ${LOGNAME}
+
+##	exit 12
+##fi
 
 
 #############################################################
 # Get manifest filename
 #############################################################
 # Ex. NYSPAP_Manifest_20221006.093854.json
-ManifestFilename=${MatchingKey}_Manifest_${S3FilenameTmstmp}.json
+##ManifestFilename=${MatchingKey}_Manifest_${S3FilenameTmstmp}.json
+ManifestFilename=${ManifestHLQ}_Manifest_${S3FilenameTmstmp}.json
 echo "ManifestFilename=${ManifestFilename}" >> ${LOGNAME}
 
 
@@ -379,7 +412,7 @@ echo "S3Bucket=${S3Bucket}" >> ${LOGNAME}
 echo "S3Folder=${S3Folder}" >> ${LOGNAME}
 echo "runToken=${S3FilenameTmstmp}" >> ${LOGNAME}
 echo "RecipientEmails=${RecipientEmails}" >> ${LOGNAME}
-echo "jiraURL=${jiraURL}" >> ${LOGNAME}
+##echo "jiraURL=${jiraURL}" >> ${LOGNAME}
 
 ManifestPathAndFilename=${DATADIR}${ManifestFilename}
 echo "ManifestPathAndFilename=${ManifestPathAndFilename}" >> ${LOGNAME}
@@ -389,7 +422,8 @@ echo "ManifestPathAndFilename=${ManifestPathAndFilename}" >> ${LOGNAME}
 # Check the status of python script  
 #############################################################
 echo "" >> ${LOGNAME}
-${PYTHON_COMMAND} ${RUNDIR}CreateManifestFilev2.py --bucket ${S3Bucket} --folder ${S3Folder} --runToken ${S3FilenameTmstmp} --REmails ${RecipientEmails} --outfile ${ManifestPathAndFilename} --jiraURL ${jiraURL}  >> ${LOGNAME} 2>&1
+##${PYTHON_COMMAND} ${RUNDIR}CreateManifestFilev2.py --bucket ${S3Bucket} --folder ${S3Folder} --runToken ${S3FilenameTmstmp} --REmails ${RecipientEmails} --outfile ${ManifestPathAndFilename} --jiraURL ${jiraURL}  >> ${LOGNAME} 2>&1
+${PYTHON_COMMAND} ${RUNDIR}CreateManifestFilev2.py --bucket ${S3Bucket} --folder ${S3Folder} --runToken ${S3FilenameTmstmp} --REmails ${RecipientEmails} --outfile ${ManifestPathAndFilename}  >> ${LOGNAME} 2>&1
 
 RET_STATUS=$?
 
@@ -422,7 +456,8 @@ for ManifestFile2Move in ${ManifestFiles2Move}
 do
 
 	## Copy manifest file to s3 manifest folder
-	if [ "${HoldManifestFile}" = "Y" ];then
+	#if [ "${HoldManifestFile}" = "Y" ];then
+	if [[ "${HoldManifestFile}" = "Y" || "${swTESTING}" = "Y" ]];then
 		aws s3 cp ${DATADIR}${ManifestFile2Move} s3://${MANIFEST_HOLD_BUCKET}${ManifestFile2Move}  1>> ${LOGNAME} 2>&1
 	else
 		aws s3 cp ${DATADIR}${ManifestFile2Move} s3://${S3MANIFEST_FOLDER_TO_USE}${ManifestFile2Move}  1>> ${LOGNAME} 2>&1

@@ -32,6 +32,12 @@
 #                           the NOF objects/filenames returned for more efficient processing.
 # 03/31/2025 Paul Baranoski Add edit to throw exception is a single file is larger than max size of all files to be included in a manifest file.
 # 05/29/2025 Paul Baranoski Add exception logic for file prefix for VA_PTD.
+# 12/19/2025 Paul Baranoski Remove JIRA ticket number parm and references. Replace with literal 'BIT'. Per CJ.
+# 04/16/2026 Paul Baranoski DataReqestIDs must be unique. Re-using a DataRequestID will result in previous Box contents being overlayed. To prevent this
+#                           I modified DataRequestID logic to add the file_prefix as part of DataRequestID to make DataRequestID unique so that the same
+#                           DataRequestID is not used when two manifest files are created at the same time. 
+# 06/10/2026 Paul Baranoski Modify logic to change file_prefix = "MOA" for VA_PTD only. It was also being set for VA_RTRN. Added logic to set file_prefix = "VARETURN' 
+#                           for VA_RTRN files. This is why we have standards. To prevent exception logic like this.
 ##################################################################################################
 import boto3
 import os
@@ -143,6 +149,20 @@ def BuildManifestFile(idx_lit, lstFileNames, args):
 
         #sFileLocation = "xtr/DEV/Blbtn" 
         sFileLocation = folder
+        
+        #####################################
+        # Build EXT_TYPE for DataRequestID
+        #####################################
+
+        sTmpField = sFileLocation
+        # Remove ending dash if exists
+        sTmpField = sTmpField.rstrip("/")
+        # Split folder path into Nodes
+        lstNodes = sTmpField.split("/")
+        # get last node of list
+        EXT_TYPE = lstNodes[-1]
+        print(f"{EXT_TYPE=}")
+        
 
         #dataRecepientEmails = "pbaranoski@apprioinc.com,jturner@apprioinc.com,SGayam@apprioinc.com"
         dataRecepientEmails = args.REmails
@@ -154,10 +174,12 @@ def BuildManifestFile(idx_lit, lstFileNames, args):
         # IDRBI-99999-20210126-165003-idx
         #tmstmp = datetime.today().strftime('%Y%m%d-%H%M%S')
 
-        jiraTicket = args.jiraURL
-        URLParts = jiraTicket.split("/")
-        dataRequestID = f'{URLParts[len(URLParts) - 1]}-{tmstmp}{idx_lit}'
+        #jiraTicket = args.jiraURL
+        #URLParts = jiraTicket.split("/")
+        #dataRequestID = f'{URLParts[len(URLParts) - 1]}-{tmstmp}{idx_lit}'
 
+        jiraTicket = f"BIT-{EXT_TYPE}"
+        dataRequestID = f'{jiraTicket}-{tmstmp}{idx_lit}'
         
         ###############################################
         # Get Environment variables DDOM Contact Info 
@@ -239,7 +261,7 @@ if __name__ == "__main__":
         parser.add_argument("--runToken", help="Run Token timestamp")
         parser.add_argument("--REmails", help="Recipient email addresses")
         parser.add_argument("--outfile", help="Manifest Path and filename")
-        parser.add_argument("--jiraURL", help="Extract JIRA URL")
+        #parser.add_argument("--jiraURL", help="Extract JIRA URL")
 
         args = parser.parse_args()
 
@@ -249,7 +271,7 @@ if __name__ == "__main__":
         print(f"{args.runToken=}")
         print(f"{args.REmails=}")        
         print(f"{args.outfile=}") 
-        print(f"{args.jiraURL=}")  
+        #print(f"{args.jiraURL=}")  
         print("")
         
         #######################################################
@@ -272,7 +294,8 @@ if __name__ == "__main__":
         folder = args.folder
         #folder = "xtr/OFM_PDE/"
         #folder = "xtr/DOJ/"
-        #folder = "xtr/DEV/DSH/
+        #folder = "xtr/DEV/OPMHI_HHA/
+        #folder = "xtr/DEV/OPMHI_ENRLMNT/
         
         #############################################################
         # Get file prefix to limit NOF items returned from S3 bucket
@@ -281,16 +304,21 @@ if __name__ == "__main__":
         folder_sans_end_slash=folder[:-1]
         # array = xtr DEV OFM_PDE
         temp_array = folder_sans_end_slash.split(sep='/')
+        print(f"{temp_array=}")
         # get last array element and split by '_'
         # array = OFM PDE
         temp_file_prefix=temp_array[-1].split("_")
+        print(f"{temp_file_prefix=}")
         # Get first element of array --> OFM
         file_prefix=temp_file_prefix[0]
         # 
         if file_prefix == "OPMHI":
             file_prefix = "FEHB"
         if file_prefix == "VA":
-            file_prefix = "MOA"
+            if temp_array[-1] == "VA_PTD":
+                file_prefix = "MOA"
+            elif temp_array[-1] == "VA_RTRN":    
+                file_prefix = "VARETURN"
         
         print(f"{file_prefix=}")
         

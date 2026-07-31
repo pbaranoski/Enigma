@@ -22,7 +22,7 @@
 # $6 = The dataRequestID value in the manifest file. The folder name at the destination.
 # 
 #
-# 2024-030-25 Paul Baranoski   Created script.	
+# 2024-30-25 Paul Baranoski   Created script.	
 ############################################################################################################
 
 set +x

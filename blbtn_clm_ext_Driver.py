@@ -12,6 +12,12 @@
 #
 #   
 # Paul Baranoski   2025-07-15 Create Module.
+# Paul Baranoski   2025-08-27 Modify logic to give rootLogger obj a logger name to ensure separate logger when calling functions in imported code.
+# Paul Baranoski   2025-09-08 When I converted from bash to python, incorrectly did not use BLBTN_EMAIL_SUCCESS_RECIPIENT for success email.
+# Paul Baranoski   2025-09-26 Modify subprocess.check_output to subprocess.run which allows to capture stderr as well as stdout. 
+#                             Add write_sp_info_2_log function and companion logging import module LoggerStandard.
+# Paul Baranoski   2025-10-20 Subprocess.run was missing "capture_output=True, text=True, check=True" function parameters which prevented email from being captured
+#                             into log file. 
 ########################################################################################################
 
 import boto3 
@@ -22,15 +28,20 @@ import argparse
 #import datetime
 from datetime import datetime
 from datetime import date,timedelta
+from dateutil.relativedelta import relativedelta
+
 
 import os
 import subprocess
 
 # Our common module with variable constants
-from SET_XTR_ENV import *
+from SET_XTR_ENV_v2 import *
 
 # contains function to extract extract filenames and record counts
 from FilenameCounts import getExtractFilenamesAndCounts
+
+# Our include members
+import LoggerStandard as EnigmaLog
 
 BLBTN_BUCKET = rf"{XTR_BUCKET}/{BLBTN_BUCKET_FLDR}"
 
@@ -49,28 +60,14 @@ RUNDIR = "/app/IDRC/XTR/CMS/scripts/run/"
 #############################################################
 # Functions
 #############################################################
-def setLogging(LOGNAME):
-
-    # Configure root logger
-    #logging.config.fileConfig(os.path.join(config_dir,"loggerConfig.cfg"))
+def write_sp_info_2_log(sp_info):
+        
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stdout) 
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stderr) 
+    rootLogger.info(f"{sp_info.returncode=}")  
     
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(funcName)-22s %(message)s",
-        encoding='utf-8', datefmt="%Y-%m-%d %H:%M:%S", 
-        #filename=f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
-        handlers=[
-        logging.FileHandler(f"{LOGNAME}"),
-        logging.StreamHandler(sys.stdout)],    
-        level=logging.INFO)
- 
-    global rootLogger
-    rootLogger = logging.getLogger() 
-  
-    os.chmod(LOG_DIR, 0o777)  # for Python3
-    
-    #logger.setLevel(logging.INFO)
-
-
 def validate_dt(sDate2Validate):
 
 
@@ -84,8 +81,8 @@ def validate_dt(sDate2Validate):
         ## Send Failure email	
         SUBJECT=f"blbtn_clm_ext_Driver.py - Failed ({ENVNAME})"
         MSG=f"Parameter date {sDate2Validate} is either an invalid date or not formatted correctly. Date must be in YYYY-MM-DD format. Process failed. "
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        rootLogger.info(sp_info) 
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+        write_sp_info_2_log(sp_info) 
         
         sys.exit(12)
             
@@ -145,7 +142,8 @@ def main_processing_loop():
         # Establish log file
         # NOTE: the \n before "started at" line is to ensure that this information is on a separate line, left-justified without any other logging info preceding it        
         ##########################################
-        setLogging(LOGNAME)
+        global rootLogger
+        rootLogger = EnigmaLog.setLogging(LOGNAME)
         rootLogger.info(f"\nblbtn_clm_ext_Driver.py started at {TMSTMP}")
 
         ###########################################################
@@ -217,8 +215,8 @@ def main_processing_loop():
         rootLogger.info("Start execution of blbtn_clm_ext.py program")
 
         try:
-            sp_info = subprocess.check_output(['python3', 'blbtn_clm_ext.py'], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'blbtn_clm_ext.py'], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
             
         except subprocess.CalledProcessError as e:
             rootLogger.error(f"Calling blbtn_clm_ext.py failed with return code {e.returncode}")
@@ -227,8 +225,8 @@ def main_processing_loop():
             ## Send Failure email	
             SUBJECT=f"Weekly Blue Button Extract - Failed ({ENVNAME})"
             MSG=f"The weekly Blue Button extract has failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
 
             sys.exit(12)    
     
@@ -254,8 +252,8 @@ def main_processing_loop():
         rootLogger.info(f"{sConcatFilename=}")
 
         try:
-            sp_info = subprocess.check_output(['bash', 'CombineS3Files.sh', BLBTN_BUCKET, sConcatFilename ], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['bash', 'CombineS3Files.sh', BLBTN_BUCKET, sConcatFilename ], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
             
         except subprocess.CalledProcessError as e:
             rootLogger.error(f"Calling CombineS3Files.sh failed with return code {e.returncode}")
@@ -265,8 +263,8 @@ def main_processing_loop():
             SUBJECT=f"Combining S3 files inblbtn_clm_ext_Driver.py - Failed ({ENVNAME})"
             MSG=f"Combining S3 files inblbtn_clm_ext_Driver.py has failed."
 
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
 
             sys.exit(12)    
 
@@ -292,8 +290,8 @@ def main_processing_loop():
         MSG=f"The Weekly Blue Button claim extract has completed for processing date range {wkly_strt_dt} thru {wkly_end_dt} .\n\nThe following file(s) were created:\n\n{S3Files}"
         
         try:
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info)
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, BLBTN_EMAIL_SUCCESS_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)
             
         except subprocess.CalledProcessError as e:
             rootLogger.error(f"sendEmail.py failed with return code {e.returncode}")
@@ -309,8 +307,8 @@ def main_processing_loop():
         rootLogger.info("EFT Blue Button Claim Extract File ")
         
         try:
-            sp_info = subprocess.check_output(['bash', 'ProcessFiles2EFT.sh', BLBTN_BUCKET ], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['bash', 'ProcessFiles2EFT.sh', BLBTN_BUCKET ], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
             
         except subprocess.CalledProcessError as e:
             rootLogger.error(f"Calling ProcessFiles2EFT.sh failed with return code {e.returncode}")
@@ -320,8 +318,8 @@ def main_processing_loop():
             SUBJECT = f"Blue Button Claim Extract EFT process  - Failed ({ENVNAME})"
             MSG= f"Blue Button Claim Extract EFT process has failed."
 
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            rootLogger.info(sp_info) 
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info) 
 
             sys.exit(12)    
 

@@ -85,14 +85,22 @@ build_week_dt_parms()
 	
 }
 
+#############################################################
+# Include module that includes all constants 
+#############################################################
+TESTING="Y"
+export TESTING
+
+source /app/IDRC/XTR/CMS/scripts/run/SET_XTR_ENV.sh  
 
 #############################################################
 # Establish log file  
 #############################################################
 TMSTMP=`date +%Y%m%d.%H%M%S`
-LOGNAME=/app/IDRC/XTR/CMS/logs/blbtn_clm_ext_${TMSTMP}.log
+LOGNAME=/app/IDRC/XTR/CMS/logs/${TESTLOG}blbtn_clm_ext_${TMSTMP}.log
 RUNDIR=/app/IDRC/XTR/CMS/scripts/run/
 DATADIR=/app/IDRC/XTR/CMS/data/
+
 
 touch ${LOGNAME}
 chmod 666 ${LOGNAME} 2>> ${LOGNAME} 
@@ -126,10 +134,8 @@ echo "   ParmOverrideToDt=${ParmOverrideToDt} " >> ${LOGNAME}
 
 
 #############################################################
-# THIS ONE SCRIPT SETS ALL DATABASE NAMES VARIABLES 
+# Include source; set BUCKET value 
 #############################################################
-source ${RUNDIR}SET_XTR_ENV.sh >> ${LOGNAME}
-
 source ${RUNDIR}FilenameCounts.bash
 
 S3BUCKET=${BLBTN_BUCKET} 
@@ -242,7 +248,7 @@ echo "" >> ${LOGNAME}
 echo "Send success email with S3 Extract filename." >> ${LOGNAME}
 echo "S3Files=${S3Files} "   >> ${LOGNAME}
 
-SUBJECT="Weekly Blue Button claim extract (${ENVNAME})" 
+SUBJECT="Weekly Blue Button claim extract (${ENVNAME}${TESTEMAIL})" 
 MSG="The Weekly Blue Button claim extract has completed.\n\nThe following file(s) were created:\n\n${S3Files}"
 
 ${PYTHON_COMMAND} ${RUNDIR}sendEmail.py "${BLBTN_EMAIL_SENDER}" "${BLBTN_EMAIL_SUCCESS_RECIPIENT}" "${SUBJECT}" "${MSG}" >> ${LOGNAME} 2>&1

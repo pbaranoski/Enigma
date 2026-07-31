@@ -4,7 +4,7 @@
 #
 # Desc: Create Manifest file required for transfers of Extract files to Outside Consumers using BOX 
 #
-# Execute as python3 CreateManifestFileDriver.py --bucket {parm1} --folder {parm2} --runToken {parm3} --BoxEmails {parm4} --Manifest_folder {parm5} --Ext_Type {parm6}
+# Execute as python3 CreateManifestFileDriver.py --bucket {parm1} --s3folder {parm2} --runToken {parm3} --BoxEmails {parm4} --Manifest_folder {parm5} --Ext_Type {parm6}
 #
 # parm1 = S3 bucket where extract files live.       Ex1: bucket=aws-hhs-cms-eadg-bia-ddom-extracts-nonrpod  
 #                                                   Ex2: bucket=aws-hhs-cms-eadg-bia-ddom-extracts
@@ -16,7 +16,21 @@
 # parm6 = (optional) Key to use against JIRA_Extract_Mappings.txt to find JIRA ticket # for manifest file. When Key cannot be determined by S3 folder like SSA_BOX. 
 #
 #
-# 07/28/2025 Paul Baranoski   Created script.	
+# 07/28/2025 Paul Baranoski   Created script.
+# 10/16/2025 Paul Baranoski   Modified code when displaying manifest file contents to preserve newlines for better log file readability.
+# 10/22/2025 Paul Baranosi    Modify subprocess.checkoutput to subprocess.run. Add function write_sp_info_2_log, and use to write messages to manifest log.
+# 11/04/2025 Paul Baranoski   Modify subprocess.checkoutput to subprocess.run
+# 11/21/2025 Paul Baranoski   Add ContentType parameter in put_object call.
+# 12/19/2025 Paul Baranoski   Remove JIRA ticket logic. Will replace with literal 'BIT'.
+# 01/12/2026 Paul Baranoski   Add logic to retrieve "TESTING" environment variable. Add logic if "TESTING" = 'Y', then 
+#                             manifest file is always placed in hold folder.
+# 04/16/2026 Paul Baranoski   DataReqestIDs must be unique. Re-using a DataRequestID will result in previous Box contents being overlayed. To prevent this
+#                             I modified DataRequestID logic to add the Manifest_HLQ as part of DataRequestID to make DataRequestID unique so that the same
+#                             DataRequestID is not used when two manifest files are created at the same time. 
+# 04/24/2026 Paul Baranoski   When a MANIFEST_FOLDER_OVERRIDE parameter value is passed, only use this value when swTESTING == "N".  
+# 06/23/2026 Paul Baranoski   Modify logic to change file_prefix = "MOA" for VA_PTD only. It was also being set for VA_RTRN. Added logic to set file_prefix = "VARETURN' 
+#                             for VA_RTRN files. This is why we have standards. To prevent exception logic like this.
+# 07/23/2026 Paul Baranoski   Change verbiage of error message in main function.
 ############################################################################################################
 import boto3 
 import logging
@@ -32,6 +46,8 @@ from datetime import date,timedelta
 import os
 import subprocess
 
+import LoggerStandard as EnigmaLog
+
 # Our common module with variable constants
 from SET_XTR_ENV import *
 
@@ -41,31 +57,14 @@ RUNDIR = "/app/IDRC/XTR/CMS/scripts/run/"
 #############################################################
 # Functions
 #############################################################
-def setManifestLogging(LOGNAME):
+def write_sp_info_2_log(sp_info):
 
-
-    # Configure root logger
-    #logging.config.fileConfig(os.path.join(config_dir,"loggerConfig.cfg"))
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    manifestLogger.info("\n%s", sp_info.stdout)
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    manifestLogger.info("\n%s", sp_info.stderr)
+    manifestLogger.info(f"{sp_info.returncode=}")
     
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(funcName)-22s %(message)s",
-        encoding='utf-8', datefmt="%Y-%m-%d %H:%M:%S", 
-        #filename=f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
-        handlers=[
-        logging.FileHandler(f"{LOGNAME}"),
-        logging.StreamHandler(sys.stdout)],    
-        level=logging.INFO)
-
-
-    global manifestLogger
-
-    loggerName = os.path.basename(f"LOGNAME").replace(f"_{TMSTMP}.log","")
-    manifestLogger = logging.getLogger(loggerName)
-    
-    
-    return manifestLogger
-
-
 def getConfigFileContents(sConfigFilename):
     
     s3ConfigFolder_n_filename = f"{CONFIG_BUCKET_FLDR}{sConfigFilename}"
@@ -78,8 +77,9 @@ def getConfigFileContents(sConfigFilename):
         ## Send Failure email	
         SUBJECT=f"CreateManifestFileDriver.py - Failed ({ENVNAME})"
         MSG=f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed. "
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        manifestLogger.info(sp_info) 
+        
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+        write_sp_info_2_log(sp_info)
         raise Exception(f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed.")        
 
     
@@ -90,8 +90,8 @@ def getConfigFileContents(sConfigFilename):
         ## Send Failure email	
         SUBJECT=f"CreateManifestFileDriver.py - Failed ({ENVNAME})"
         MSG=f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed. "
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        manifestLogger.info(sp_info)  
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+        write_sp_info_2_log(sp_info)  
         raise Exception(f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed.")        
 
 
@@ -101,36 +101,8 @@ def getConfigFileContents(sConfigFilename):
 
     return lstConfigRecs
     
-    
-def findDOJFOIAJiraTicketMatch(lstConfigExtKeys, p_S3ExtFilename):
 
-    MatchingKey=""
-
-    # Ex. p_ExtType = DOJ_ANTI_TRUST, FOIA_PISTORINO
-    #manifestLogger.info(f"{p_ExtType=}")
-    manifestLogger.info(f"{p_S3ExtFilename=}")
-
-    for configExtKey in lstConfigExtKeys:
-        manifestLogger.info(f"{configExtKey=}")
-        
-        # is this a DOJ or FOIA configuration? No --> go to next config record
-        #idx = configExtKey.find(p_ExtType)
-        #if idx == -1:
-        #    continue
-            
-        # does the config key match the filename? --> Ex. DOJ_ANTI_TRUST 
-        keyMatch_idx =  p_S3ExtFilename.find(configExtKey)
-        if keyMatch_idx != -1:
-            MatchingKey=f"{configExtKey}"
-            break            
-
-	
-    manifestLogger.info(f"{MatchingKey=}")
-    return MatchingKey
-
-
-def ProcessFiles2IncludeInManifestFile(s3ManifestFilesFolder, sModelManifestFilename, Files2IncludeInManifest, jiraURL, RecipientEmails):
-
+def ProcessFiles2IncludeInManifestFile(s3ManifestFilesFolder, sModelManifestFilename, Files2IncludeInManifest, RecipientEmails, ManifestHLQ):
 
     ############################################
     # Variables and constants
@@ -213,11 +185,15 @@ def ProcessFiles2IncludeInManifestFile(s3ManifestFilesFolder, sModelManifestFile
     ##################################################
     # Create a manifest file for each group
     ##################################################
-    print("\nBefore group_filenames process")
+    manifestLogger.info("\nBefore group_filenames process")
     
     NOFGroups = len(group_filename_lists)
     manifestLogger.info(f"{NOFGroups=}")
     
+    # IDRBI-99999-20210126-165003-idx
+    tmstmp4DataReqID = datetime.today().strftime('%Y%m%d-%H%M%S')
+
+   
     for idx, filename_list in enumerate(group_filename_lists, start=1):
         #print ("\n")
         manifestLogger.info(f"{idx=}")
@@ -230,12 +206,10 @@ def ProcessFiles2IncludeInManifestFile(s3ManifestFilesFolder, sModelManifestFile
         else:    
             idx_lit = f"-{idx}"
 
-        BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, filename_list, idx_lit, jiraURL, RecipientEmails)
-
+        BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, filename_list, idx_lit, RecipientEmails, tmstmp4DataReqID, ManifestHLQ )
 
     
-def BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, lstFileNames, idx_lit, jiraURL, RecipientEmails):
-
+def BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, lstFileNames, idx_lit, RecipientEmails, tmstmp4DataReqID, ManifestHLQ):
    
     try:    
 
@@ -252,14 +226,14 @@ def BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, lstFileName
         sManifestFilename = sModelManifestFilename.replace(".json",f"{idx_lit}.json")
         ######manifestLogger.info(f"sOutFilePathAndName={sOutFilePathAndName}")
 
-        # IDRBI-99999-20210126-165003-idx
-        tmstmpDataReqID = datetime.today().strftime('%Y%m%d-%H%M%S')
+        ##jiraTicket = jiraURL
+        ##URLParts = jiraTicket.split("/")
+        ##dataRequestID = f"{URLParts[len(URLParts) - 1]}-{tmstmpDataReqID}{idx_lit}"
+        ##manifestLogger.info(f"{dataRequestID=}")
 
-        jiraTicket = jiraURL
-        URLParts = jiraTicket.split("/")
-        dataRequestID = f"{URLParts[len(URLParts) - 1]}-{tmstmpDataReqID}{idx_lit}"
+        jiraTicket = f"BIT-{ManifestHLQ}"
+        dataRequestID = f"{jiraTicket}-{tmstmp4DataReqID}{idx_lit}"
         manifestLogger.info(f"{dataRequestID=}")
-
         
         ###############################################
         # Get Environment variables DDOM Contact Info 
@@ -315,13 +289,13 @@ def BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, lstFileName
         manifestLogger.info("Convert dictionary to json format")
 
         json_obj = json.dumps(dctManifest, indent=4)
-        manifestLogger.info(f"{json_obj=}")
+        manifestLogger.info("\n" + json_obj)
 
         destKey = s3ManifestFilesFolder + sManifestFilename
         manifestLogger.info(f"{destKey=}")
         
         manifestLogger.info(f"Put file {destKey} into S3")
-        resp = s3_client.put_object(Bucket=XTR_BUCKET, Key=destKey, Body=json_obj)
+        resp = s3_client.put_object(Bucket=XTR_BUCKET, Key=destKey, Body=json_obj, ContentType="application/json")
 
         manifestLogger.debug(f"{resp=}")
         
@@ -329,8 +303,8 @@ def BuildManifestFile(s3ManifestFilesFolder, sModelManifestFilename, lstFileName
             ## Send Failure email	
             SUBJECT=f"CreateManifestFileDriver.py - Failed ({ENVNAME})"
             MSG=f"Put manifest file failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            manifestLogger.info(sp_info)        
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)            
             raise Exception(f"Put manifest file {destKey} failed.")  
 
     except Exception as e:
@@ -352,18 +326,14 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         ##########################################
         global TMSTMP
         global LOGNAME
+        global manifestLogger
 
 
         #TMSTMP = If TMSTMP value set by caller via export --> use that value. 
-        #         Else use the timestamp created in this script        
-        try:
-            TMSTMP = os.environ["TMSTMP"]
-
-        except KeyError:
-            # if environment variable doesn't exist --> create it.
-            TMSTMP = datetime.now().strftime('%Y%m%d.%H%M%S')
-            os.environ["TMSTMP"] = TMSTMP        
-        
+        #         Else use the timestamp created in this script  
+        TMSTMP = os.getenv("TMSTMP",datetime.now().strftime('%Y%m%d.%H%M%S'))
+        os.environ["TMSTMP"] = TMSTMP 
+         
         print(f"{TMSTMP=}")
 
         LOGNAME = f"{LOG_DIR}CreateManifestFile_{TMSTMP}.log"
@@ -372,7 +342,7 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         # Establish log file
         # NOTE: the \n before "started at" line is to ensure that this information is on a separate line, left-justified without any other logging info preceding it        
         ##########################################
-        setManifestLogging(LOGNAME)
+        manifestLogger = EnigmaLog.setLogging(LOGNAME)
 
         manifestLogger.info("################################### ")
         manifestLogger.info(f"\nCreateManifestFileDriver.py started at {TMSTMP} ")
@@ -403,14 +373,21 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         MANIFEST_FOLDER_OVERRIDE = Manifest_folder
         ExtractTypeOverride = Ext_Type
         
-         
+        #############################################################
+        # Retrieve "TESTING" environment variable (Y or N)
+        #############################################################
+        swTESTING = os.getenv("TESTING","N")
+            
+        manifestLogger.info("")
+        manifestLogger.info(f"Environment variable --> TESTING={swTESTING}")        
+        
         #############################################################
         # Determine if using ExtractType override --> files named differently 
         #  from S3 folder.
         # Ex. S3BucketFldr = "/xtr/DEV/FOIA/" --> "FOIA"
         #############################################################
         manifestLogger.info(f"Determine Extract Type")
-        
+       
         if ExtractTypeOverride == None:
             # Remove last slash for "split" to work properly
             lstNodes = S3BucketFldr[ : -1].split("/")
@@ -433,20 +410,23 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         if file_prefix == "OPMHI":
             file_prefix = "FEHB"
         if file_prefix == "VA":
-            file_prefix = "MOA"
-        
+            if ExtractType == "VA_PTD":
+                file_prefix = "MOA"
+            elif ExtractType == "VA_RTRN":    
+                file_prefix = "VARETURN"
+                
         manifestLogger.info(f"{file_prefix=}")
         
 
         #############################################################
         # Global constants  
         #############################################################
-        JIRA_MAPPING_FILE = "JIRA_Extract_Mappings.txt"
+        #JIRA_MAPPING_FILE = "JIRA_Extract_Mappings.txt"
         MANIFEST_CONFIG_FILE = "MANIFEST_FILE_PROCESS_CONFIG.txt"
        
         manifestLogger.info(f"{CONFIG_BUCKET_FLDR}")        
         manifestLogger.info(f"{MANIFEST_CONFIG_FILE=}")
-        manifestLogger.info(f"{JIRA_MAPPING_FILE=}")
+        #manifestLogger.info(f"{JIRA_MAPPING_FILE=}")
 
 
         #############################################################
@@ -470,99 +450,59 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
             ## Send Failure email	
             SUBJECT=f"CreateManifestFileDriver.py - Failed ({ENVNAME})"
             MSG=f"Get List of S3 objects for folder {S3BucketFldr} failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            manifestLogger.info(sp_info)        
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)        
             raise Exception(f"Get List of S3 objects for folder {S3BucketFldr} failed.")  
        
         # Get the filenames with the run token (filename timestamp)   
-        #lstFiles2IncludeInManifest =  [ x['Key']  for x in resp['Contents'] if str(x['Key']).find(S3FilenameTmstmp) != -1 ]
-        lstFiles2IncludeInManifest =  [ {"Key": x['Key'], "Size": x['Size']}  for x in resp['Contents'] if str(x['Key']).find(S3FilenameTmstmp) != -1 ]
+        #lstKeys2IncludeInManifest =  [ x['Key']  for x in resp['Contents'] if str(x['Key']).find(S3FilenameTmstmp) != -1 ]
+        lstKeys2IncludeInManifest =  [ {"Key": x['Key'], "Size": x['Size']}  for x in resp['Contents'] if str(x['Key']).find(S3FilenameTmstmp) != -1 ]
         
         manifestLogger.info("")
-        manifestLogger.info(f"{lstFiles2IncludeInManifest=}")
+        manifestLogger.info(f"{lstKeys2IncludeInManifest=}")
  
  
         # List should include at least one file
-        if len(lstFiles2IncludeInManifest) == 0:
+        if len(lstKeys2IncludeInManifest) == 0:
             SUBJECT=f"CreateManifestFileDriver.py - Failed ({ENVNAME})"
             MSG=f"No files found to include in manifest file - failed. "
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-            manifestLogger.info(sp_info)        
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+            write_sp_info_2_log(sp_info)        
             raise Exception(f"No files found to include in manifest file - failed.")  
 
-
         #############################################################
-        # Retrieve config file JIRA_Extract_Mappings.txt contents
-        #############################################################
-        manifestLogger.info("")
-        manifestLogger.info(f"Retrieve config file {JIRA_MAPPING_FILE} contents" )
-        lstConfigRecs = getConfigFileContents(JIRA_MAPPING_FILE)
-        
-        manifestLogger.info("")
-        manifestLogger.info(f"{lstConfigRecs=}")
-        
-        lstExtKeys=[configRec.split("=")[0] for configRec in lstConfigRecs]
-        
-        manifestLogger.info("")
-        manifestLogger.info(f"{lstExtKeys=}")
-
-        #############################################################
-        # Extract JIRA URL for Extract type
-        # NOTE: Perform "exception" logic for DOJ or FOIA JIRA tickets.
-        #       Match each JIRA_MAPPING_FILE DOJ-JIRA-ticket entry to the filename
+        # Buid HLQ nodes for Manifest Filename.
         #############################################################
         if  ExtractType == "DOJ" or ExtractType == "FOIA":
-            manifestLogger.info("Look for DOJ Jira ticket entry")
-            S3ExtractFilename = lstFiles2IncludeInManifest[0]['Key']
-            MatchingKey = findDOJFOIAJiraTicketMatch(lstExtKeys, S3ExtractFilename)
-            if MatchingKey == "":
-                manifestLogger.info(f"No MatchingKey found for filename {S3ExtractFilename} on JIRA_MAPPING_FILE config file - Failed")
-                raise Exception(f"No MatchingKey found for filename {S3ExtractFilename} on JIRA_MAPPING_FILE config file - Failed") 	
+
+            # Get one filename from list of files
+            S3ExtKey = lstKeys2IncludeInManifest[0]['Key']
+            S3ExtractFilename = os.path.basename(S3ExtKey)
+
+            manifestLogger.info(f'{S3ExtractFilename=}')
+            
+            # Example: DOJ_ABBOTT_HICN_20240927.132311.txt.gz
+            # Example2: DOJ_SFUI_REQ103a_WALMART_PTD_Y2013_20250929.120000.txt.gz
+            lstFilenameNodes = S3ExtractFilename.split("_")
+            manifestLogger.info(f'{lstFilenameNodes=}')
+            
+            sExtReqFirst3Nodes = "_".join(lstFilenameNodes[:3])
+            manifestLogger.info(f'{sExtReqFirst3Nodes=}')
+            
+            ManifestHLQ = sExtReqFirst3Nodes
 
         else:
-            manifestLogger.info("Look for non-DOJ-FOIA Jira ticket entry")
-            MatchingKey = ExtractType
+            manifestLogger.info("Get non-DOJ-FOIA Extract Type") 
+            ManifestHLQ = ExtractType
 
+        manifestLogger.info(f'{ManifestHLQ=}')
 
-        ####################################################################
-        # Get JIRA ticket #
-        ####################################################################
-        manifestLogger.info(f"Find matching entry in JIRA_MAPPING_FILE for {MatchingKey}")   
-
-        jiraEntry = ""
-        jiraURL = ""
-        
-        # Look for the matching entry in JIRA config file to get the JIRA ticket number
-        for configRec in lstConfigRecs:
-            
-            if configRec.strip() == "":
-                continue
-                
-            configKey = configRec.split("=")[0]
-            configValue = configRec.split("=")[1]
-            if configKey == MatchingKey:
-                jiraEntry = configRec
-                jiraURL = configValue
-                
-                break
-
-        # Is key missing from JIRA config file?
-        if jiraEntry == "":
-            manifestLogger.info("")
-            manifestLogger.info(f"{JIRA_MAPPING_FILE} missing Extract Type {MatchingKey} mapping.")
-
-            raise Exception(f"{JIRA_MAPPING_FILE} missing Extract Type {MatchingKey} mapping.") 	
-
-        
-        manifestLogger.info(f"{jiraEntry=}")
-        manifestLogger.info(f"{jiraURL=}")
-        
         
         #############################################################
         # Create manifest file filename
         #############################################################
         # Ex. NYSPAP_Manifest_20221006.093854.json
-        ManifestFilename = f"{MatchingKey}_Manifest_{S3FilenameTmstmp}.json"
+        ManifestFilename = f"{ManifestHLQ}_Manifest_{S3FilenameTmstmp}.json"
         manifestLogger.info(f"{ManifestFilename=}")
 
 
@@ -581,7 +521,7 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         HoldManifestFile = "N"
         
         # Look for the matching entry in JIRA config file to get the JIRA ticket number
-        if  ExtractType == "DOJ" or ExtractType == "FOIA":
+        if  ExtractType == "DOJ" or ExtractType == "FOIA" or swTESTING == "Y":
             HoldManifestFile = "Y"
         else:
             # see if there is a hold for the extract type in the config file
@@ -593,7 +533,7 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
                 
                 HoldKey = ManifestConfigRec.split("=")[0]
                 HoldValue = ManifestConfigRec.split("=")[1]
-                if HoldKey == f"{MatchingKey}.HOLD":
+                if HoldKey == f"{ManifestHLQ}.HOLD":
                     HoldManifestFile = HoldValue
                     manifestLogger.info(f"Using S3 staging/hold override from {MANIFEST_CONFIG_FILE} configuration file.")
                     manifestLogger.info(f"Override Hold Manifest File value is {HoldValue}")
@@ -608,11 +548,11 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         #######################################################
         # Determine if using override manifest folder
         #######################################################
-        if MANIFEST_FOLDER_OVERRIDE != None:
+        if MANIFEST_FOLDER_OVERRIDE != None and HoldManifestFile == "N":
             manifestLogger.info("Using override manifest bucket value")
             S3MANIFEST_FOLDER_TO_USE = MANIFEST_FOLDER_OVERRIDE
         elif HoldManifestFile == "Y":
-            manifestLogger.info("Using default manifest bucket value")
+            manifestLogger.info("Using default manifest hold bucket value")
             S3MANIFEST_FOLDER_TO_USE = MANIFEST_HOLD_BUCKET_FLDR
         else:
             manifestLogger.info("Using default manifest bucket value")
@@ -626,7 +566,7 @@ def createManifestFile(bucket=None, s3folder=None, runToken=None, BoxEmails=None
         ####################################################################
         # Process files 2 Include in manifest File(s)
         ####################################################################
-        ProcessFiles2IncludeInManifestFile(S3MANIFEST_FOLDER_TO_USE, ManifestFilename, lstFiles2IncludeInManifest, jiraURL, RecipientEmails)
+        ProcessFiles2IncludeInManifestFile(S3MANIFEST_FOLDER_TO_USE, ManifestFilename, lstKeys2IncludeInManifest, RecipientEmails, ManifestHLQ)
 
         
         ####################################################################
@@ -659,17 +599,18 @@ if __name__ == "__main__":
         parser.add_argument("--bucket", help="base bucket to use")
         parser.add_argument("--s3folder", help="S3 folder whose contents should be combined")
         parser.add_argument("--runToken", help="timestamp that all files to include have")
-        parser.add_argument("--BoxEmails", help="output location for resulting merged files, relative to the specified base bucket")
-        parser.add_argument("--Manifest_folder", type=int, help="max filesize of the concatenated files in bytes")
-        parser.add_argument("--Ext_Type", type=int, help="max filesize of the concatenated files in bytes")
+        parser.add_argument("--BoxEmails", help="Box Recipient emails. Comma-delimited string.")
+        parser.add_argument("--Manifest_folder", type=int, help="override s3 manifest file folder.")
+        parser.add_argument("--Ext_Type", type=int, help="Ext Type JIRA look up")
         
         args = parser.parse_args()
         
        
     except Exception as e:
-        logging.error("Exception occured in combinedS3Files.py.")
+        logging.error("Exception occured in CreateManifestFileDriver.py.")
         print(e)
 
         sys.exit(12) 
     
-    createManifestFile(bucket=args.bucket, s3folder=args.s3Folder, runToken=None, BoxEmails=None, Manifest_folder=None, Ext_Type=None)
+    createManifestFile(bucket=args.bucket, s3folder=args.s3folder, runToken=args.runToken, BoxEmails=args.BoxEmails, Manifest_folder=args.Manifest_folder, Ext_Type=args.Ext_Type)
+    

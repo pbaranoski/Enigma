@@ -19,23 +19,37 @@
 # Paul Baranoski 2025-07-07 Create Module.
 # Paul Baranoski 2025-07-17 Move placement of code setting the current working directory to be right after
 #                           establishing the log file.
+# Paul Baranoski 2025-08-27 Modify logic to give rootLogger obj a logger name to ensure separate logger when calling functions in imported code.
+# Paul Baranoski 2025-09-15 Replace subprocess.check_output calls with subprocess.run. Modify to extract stdout and stderr.
+# Paul Baranoski 2025-09-17 Add code to be able to not create calendar entries when the date occurs before new config date ExtInitDeliveryDt.
+# Paul Baranoski 2025-11-17 Add code for Extract Obsolete Date. This will prevent calendar entries from being created after the ExtObsoleteDt.
+# Paul Baranoski 2025-11-21 Add ContentType parameter in put_object call.
+# Paul Baranoski 2025-12-03 Comment out logic to determine nearest working day when a specific day is entered in config file. Need this for 
+#                           proper Calendar entry creation for RAC.
 ########################################################################################################
+
+# Our common module with variable constants
+from SET_XTR_ENV import *
 
 import boto3 
 import logging
+import os
 import sys
+import io
 import argparse
 import re
+
+import subprocess
+from contextlib import redirect_stdout, redirect_stderr
 
 #import datetime
 from datetime import datetime
 from datetime import date,timedelta
+        
+import BuildRunExtCalendarImport as ExtSQL
 
-import os
-import subprocess
-
-# Our common module with variable constants
-from SET_XTR_ENV import *
+# Our include members
+import LoggerStandard as EnigmaLog
 
 
 DATA_DIR = "/app/IDRC/XTR/CMS/data/"
@@ -62,28 +76,14 @@ ValidNumeredDay = '^[0-9]+$'
 ValidDayAbrevAndOcc = '^(SUN|MON|TUE|WED|THU|FRI|SAT)-(1|2|3|4|L|F)$'
 ValidLWFWLDFD = '^(LW|FW|LD|FD)$'
 
-		
-def setLogging():
-
-    # Configure root logger
-    #logging.config.fileConfig(os.path.join(config_dir,"loggerConfig.cfg"))
+def write_sp_info_2_log(sp_info):
+        
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stdout) 
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stderr) 
+    rootLogger.info(f"{sp_info.returncode=}") 
     
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(funcName)-22s %(message)s",
-        encoding='utf-8', datefmt="%Y-%m-%d %H:%M:%S", 
-        #filename=f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
-        handlers=[
-        logging.FileHandler(f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"),
-        logging.StreamHandler(sys.stdout)],    
-        level=logging.INFO)
- 
-    global rootLogger
-    rootLogger = logging.getLogger() 
-  
-    os.chmod(LOG_DIR, 0o777)  # for Python3
-    
-    #logger.setLevel(logging.INFO)
-
 
 def getMatchingDOWDate(parmStartDt, parmDOWMask, parmOcc, parmSign):
 
@@ -229,10 +229,12 @@ def setNOFDaysForYear(sYYYY):
     return NOF_Days_in_Year
 
 
-def buildWkCal4Yr(lstCalendarOutputRecs, p_out_rec):
+def buildWkCal4Yr(lstCalendarOutputRecs, p_ExtInitDeliveryDt, p_ExtObsoleteDt, p_out_rec):
 
     rootLogger.info(f"{p_out_rec=} ")      
-
+    rootLogger.info(f"{p_ExtInitDeliveryDt=} ")  
+    rootLogger.info(f"{p_ExtObsoleteDt=} ")  
+        
     # Set date to first day of year
     sStartDate = sProcessingYYYY + "-01-01"
     dttmStartDt = datetime.strptime(sStartDate,'%Y-%m-%d')
@@ -267,13 +269,41 @@ def buildWkCal4Yr(lstCalendarOutputRecs, p_out_rec):
 
             rootLogger.info(f"This date matches criteria: {sExtDt=} ")  
             rootLogger.info(f"This date matches criteria: {sDOWAbbrev=} ")  
-			
-			# output record and add Extract day and NOD
+           
+			# output record and add Extract day and DOW
             sCalendarOutputRec = sExtDt + FLD_DELIM + sDOWAbbrev + FLD_DELIM + p_out_rec 
-            lstCalendarOutputRecs.append(sCalendarOutputRec)
+
+            rootLogger.info(f"Perform further determination that date is within Initial Delivery and/or Obsolete Dates.")  
+
+            #######################################################
+            # NOTE: Do not Write Calendar record when sExtDate is before the p_ExtInitDeliveryDt
+            #######################################################
+            if p_ExtInitDeliveryDt > "" and p_ExtObsoleteDt > "":
+
+                if sExtDt >= p_ExtInitDeliveryDt and sExtDt < p_ExtObsoleteDt:
+                    lstCalendarOutputRecs.append(sCalendarOutputRec) 
+                else:
+                    rootLogger.info(f"The sExtDate {sExtDt} is before the Initial Deliver Date {p_ExtInitDeliveryDt} or after the Obsolete Date {p_ExtObsoleteDt} for Extract. Not adding calendar record.")		
+                
+            elif p_ExtInitDeliveryDt > "":
+
+                if sExtDt >= p_ExtInitDeliveryDt:
+                    lstCalendarOutputRecs.append(sCalendarOutputRec)  
+                else:
+                    rootLogger.info(f"The sExtDate {sExtDt} is before the InitDeliver Date {p_ExtInitDeliveryDt} for Extract. Not adding calendar record.")		
+
+            elif p_ExtObsoleteDt > "":
+
+                if sExtDt >= p_ExtObsoleteDt :
+                    rootLogger.info(f"The sExtDate {sExtDt} is aftet the Extract Obsolete Date {p_ExtObsoleteDt} for Extract. Not adding calendar record.")		
+                else:
+                    lstCalendarOutputRecs.append(sCalendarOutputRec)  
+            
+            else:
+                lstCalendarOutputRecs.append(sCalendarOutputRec)  
 
 
-def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_out_rec):
+def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_ExtInitDeliveryDt, p_ExtObsoleteDt, p_out_rec):
 
     ###################################################
     # p_Months like: "JAN,APR,JUL,OCT" or "JAN,JUL"
@@ -281,9 +311,13 @@ def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_out_rec):
     #             LW,FW,LD,FD,
     #             "FRI-2" (2nd FRI) "FRI-L" (last FRI)
     #             "FRI-F" (first FRI)
+    # p_ExtInitDeliveryDt: YYYY-MM-DD 
+    # p_ExtObsoleteDt: YYYY-MM-DD
     ###################################################
     rootLogger.info(f"{p_Months=} ")
     rootLogger.info(f"{p_Month_Day=} ")
+    rootLogger.info(f"{p_ExtInitDeliveryDt=} ")
+    rootLogger.info(f"{p_ExtObsoleteDt=} ")
     rootLogger.info(f"{p_out_rec=} ")     
 
     ###################################################	
@@ -318,8 +352,9 @@ def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_out_rec):
         SUBJECT=f"BuildRunExtCalendarDriver.py  - Failed ({ENVNAME})"
         MSG=f"Invalid DOM value {p_Month_Day} in config file record {p_out_rec}. Process failed. "
         #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        rootLogger.info(sp_info)        
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+
+        rootLogger.info(sp_info.stdout)        
 
         sys.exit(12)
 
@@ -451,7 +486,10 @@ def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_out_rec):
             parmOcc = "1"
             parmSign = "-"
 				
-            sQtrDate = getMatchingDOWDate (parmStartDt, parmDOWMask, parmOcc, parmSign)
+            # With a specific day we will not search for nearest working day.
+            # NOTE: This is important for RAC            
+            #sQtrDate = getMatchingDOWDate (parmStartDt, parmDOWMask, parmOcc, parmSign)
+            sQtrDate = parmStartDt
 
 
         rootLogger.info(f"{sQtrDate=}")
@@ -462,9 +500,35 @@ def buildQtrCal4Yr(lstCalendarOutputRecs, p_Months, p_Month_Day, p_out_rec):
         dttmQtrDt = datetime.strptime(sQtrDate,'%Y-%m-%d')	
         sDOWAbbrev = dttmQtrDt.strftime('%a')   
 
-        # output record and add Extract day and NOD
+        # Build output record and add Extract day and NOD
         sCalendarOutputRec = sQtrDate + FLD_DELIM + sDOWAbbrev + FLD_DELIM + p_out_rec 
-        lstCalendarOutputRecs.append(sCalendarOutputRec)    
+        
+		#######################################################
+		# NOTE: Do not Write Calendar record when QtrDate is before the p_ExtInitDeliveryDt
+		#######################################################
+        if p_ExtInitDeliveryDt > "" and p_ExtObsoleteDt > "":
+
+            if sQtrDate >= p_ExtInitDeliveryDt and sQtrDate < p_ExtObsoleteDt:
+                lstCalendarOutputRecs.append(sCalendarOutputRec) 
+            else:
+                rootLogger.info(f"The QtrDate {sQtrDate} is before the Initial Deliver Date {p_ExtInitDeliveryDt} or after the Obsolete Date {p_ExtObsoleteDt} for Extract. Not adding calendar record.")		
+            
+        elif p_ExtInitDeliveryDt > "":
+
+            if sQtrDate >= p_ExtInitDeliveryDt:
+                lstCalendarOutputRecs.append(sCalendarOutputRec)  
+            else:
+                rootLogger.info(f"The QtrDate {sQtrDate} is before the InitDeliver Date {p_ExtInitDeliveryDt} for Extract. Not adding calendar record.")		
+
+        elif p_ExtObsoleteDt > "":
+
+            if sQtrDate >= p_ExtObsoleteDt :
+                rootLogger.info(f"The QtrDate {sQtrDate} is aftet the Extract Obsolete Date {p_ExtObsoleteDt} for Extract. Not adding calendar record.")		
+            else:
+                lstCalendarOutputRecs.append(sCalendarOutputRec)  
+        
+        else:
+            lstCalendarOutputRecs.append(sCalendarOutputRec)  
 
 
 def main_processing_loop():
@@ -476,11 +540,15 @@ def main_processing_loop():
         TMSTMP = datetime.now().strftime('%Y%m%d.%H%M%S')
         print(f"{TMSTMP=}")
 
+        global LOGNAME
+        LOGNAME = f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
+        
         ##########################################
         # Establish log file
         ##########################################
-        setLogging()
-        rootLogger.info(f"BuildRunExtCalendarDriver.py started at {TMSTMP}")
+        global rootLogger
+        rootLogger = EnigmaLog.setLogging(LOGNAME)
+        rootLogger.info(f"\nBuildRunExtCalendarDriver.py started at {TMSTMP}")
 
         ###########################################################
         # Set current working directory to scripts/run directory.
@@ -531,7 +599,7 @@ def main_processing_loop():
             SUBJECT=f"BuildRunExtCalendarDriver.py  - Failed ({ENVNAME})"
             MSG=f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed. "
             #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
             rootLogger.info(sp_info)        
 
         
@@ -543,16 +611,14 @@ def main_processing_loop():
             SUBJECT=f"BuildRunExtCalendarDriver.py  - Failed ({ENVNAME})"
             MSG=f"Config file {s3ConfigFolder_n_filename} is not in S3. Process failed. "
             #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG
-            sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
+            sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
             rootLogger.info(sp_info)        
 
 
         # S3 Body is byte array. Convert byte array to utf-8 string. Splitlines recognizes "\r\n" as end-of-record markers     
         lstConfigRecs = calendarConfigFile["Body"].read().decode('utf-8').splitlines()
-        rootLogger.info(f"{lstConfigRecs=}") 
-
-        #username=os.getenv('USER')
-        #rootLogger.info(f"{username=}")
+        sConfigRecs = "\n".join(lstConfigRecs)
+        rootLogger.info("\n%s", sConfigRecs) 
 
 
         #########################################################
@@ -578,6 +644,8 @@ def main_processing_loop():
             FinderFileReq = lstConfigRecFlds[6].strip()
             FF_Pre_Processing = lstConfigRecFlds[7].strip()
             DeliveryMethod = lstConfigRecFlds[8].strip()
+            ExtInitDeliveryDt = lstConfigRecFlds[13].strip()
+            ExtObsoleteDt = lstConfigRecFlds[14].strip()            
 
             rootLogger.info(f"{ExtractID=}")  	
             rootLogger.info(f"{Ext_Desc=}")  	
@@ -588,7 +656,9 @@ def main_processing_loop():
             rootLogger.info(f"{FinderFileReq=}")        
             rootLogger.info(f"{FF_Pre_Processing=}")        
             rootLogger.info(f"{DeliveryMethod=}")         
-
+            rootLogger.info(f"{ExtInitDeliveryDt=}")    
+            rootLogger.info(f"{ExtObsoleteDt=}")   
+            
             ####################################################
             # Create year calendar records for extract
             ####################################################
@@ -597,14 +667,14 @@ def main_processing_loop():
 
                 DaysMatchMask = getDaysMatchMask(DOW_DOM)
                 rootLogger.info(f"{DaysMatchMask=}")  
-                buildWkCal4Yr(lstCalendarOutputRecs, sConfigRec) 
+                buildWkCal4Yr(lstCalendarOutputRecs, ExtInitDeliveryDt, ExtObsoleteDt, sConfigRec) 
 
             elif TimeFrame == 'M':
                 rootLogger.info("Processing Monthly Extract")  
-                buildQtrCal4Yr(lstCalendarOutputRecs, MON_ABREVS_DELIM, DOW_DOM, sConfigRec)
+                buildQtrCal4Yr(lstCalendarOutputRecs, MON_ABREVS_DELIM, DOW_DOM, ExtInitDeliveryDt, ExtObsoleteDt, sConfigRec)
                 
             elif TimeFrame == 'Q' or TimeFrame == 'S' or TimeFrame == 'A':   
-                buildQtrCal4Yr(lstCalendarOutputRecs, Months, Month_Day, sConfigRec)
+                buildQtrCal4Yr(lstCalendarOutputRecs, Months, Month_Day, ExtInitDeliveryDt, ExtObsoleteDt, sConfigRec)
 
             else:
                 rootLogger.info(f"Invalid extract time frame: {TimeFrame} in config file record {sConfigRec}") 	
@@ -613,7 +683,7 @@ def main_processing_loop():
                 SUBJECT=f"BuildRunExtCalendarDriver.py  - Failed ({ENVNAME})"
                 MSG=f"Invalid extract time frame: {TimeFrame} in config file record {config_rec}. Process failed. "
                 #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG 
-                sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
+                sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
                 rootLogger.info(sp_info)
     
                 sys.exit(12)	
@@ -636,7 +706,7 @@ def main_processing_loop():
         s3CalendarFolder_n_filename = f"{CALENDAR_BUCKET_FLDR}{s3CalendarOutputFile}"
 
         rootLogger.info(f"S3 Put object Bucket={XTR_BUCKET} and Key={s3CalendarFolder_n_filename}")
-        s3_client.put_object(Bucket=XTR_BUCKET, Key=s3CalendarFolder_n_filename, Body=bCalendarOutputRec )
+        s3_client.put_object(Bucket=XTR_BUCKET, Key=s3CalendarFolder_n_filename, Body=bCalendarOutputRec, ContentType="text/plain" )
 
 
         ####################################################################
@@ -644,7 +714,7 @@ def main_processing_loop():
         ####################################################################         
         rootLogger.info("All records processed in Configuration File") 
 
-
+        
         ####################################################################
         # Load Calendar file into S3 table. 
         ####################################################################  
@@ -653,25 +723,40 @@ def main_processing_loop():
         os.environ["ProcessingYYYY"] = sProcessingYYYY
         os.environ["RUN_CALENDAR_OUTPUT_FILE"] = s3CalendarOutputFile
 
-        sp_info = subprocess.check_output(['python3', 'BuildRunExtCalendar.py'], text=True)
-        rootLogger.info(sp_info)
+        #sp_info = subprocess.run(['python3', 'BuildRunExtCalendar.py'], capture_output=True, text=True, check=True)
+        #write_sp_info_2_log(sp_info)
 
+        ############################################################
+        # Redirect stdout from import module call to our log file
+        ############################################################
+        ioCaptureStdOutStdErr = io.StringIO()    
+            
+        with redirect_stdout(ioCaptureStdOutStdErr), redirect_stderr(ioCaptureStdOutStdErr):
+            ExtSQL.executeSFSQL()
+            #print("after ExtSQL.execute")
+    
+        # send capture stdout messages to log file 
+        rootLogger.info("\n%s", ioCaptureStdOutStdErr.getvalue())         
 
+        ioCaptureStdOutStdErr.close()
+        
         ####################################################################
         # Send success email 
         ####################################################################          
+        rootLogger.info("Send Success email")
+        
         SUBJECT=f"BuildRunExtCalendarDriver.py completed successfully for {sProcessingYYYY}. ({ENVNAME})"
         MSG="BuildRunExtCalendarDriver.py completed successfully."
         #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG 
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        rootLogger.info(sp_info)
-
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
+        write_sp_info_2_log(sp_info)
+        
         ####################################################################
         # End of Processing
         ####################################################################          
         # Need these messages for Dashboard
         rootLogger.info("Script BuildRunExtCalendarDriver.py completed successfully.")
-        rootLogger.info(f"Ended at {TMSTMP}" )
+        rootLogger.info(f"\nEnded at {TMSTMP}" )
 
 
     except Exception as e:
@@ -684,7 +769,7 @@ def main_processing_loop():
         SUBJECT=f"BuildRunExtCalendarDriver.py  - Failed ({ENVNAME})"
         MSG=f"Exception occured in BuildCalendarDriver.py. {e} Process failed. "
         #sendEmail.py CMS_EMAIL_SENDER ENIGMA_EMAIL_FAILURE_RECIPIENT SUBJECT MSG 
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
         rootLogger.info(sp_info)        
 
         sys.exit(12)    

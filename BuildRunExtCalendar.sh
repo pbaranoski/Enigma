@@ -25,6 +25,8 @@
 # Paul Baranoski 2024-10-21 Renamed constant DAYS4MM_NON_LEAR_YR to DAYS4MM_NON_LEAP_YR. Incorrect variable name caused 2025 calendar code not
 #                           to work. Re-worked if statment which set DAYS4MM.
 # Paul Baranoski 2025-06-06 Modify error message to include CONFIG Bucket value.
+# Paul Baranoski 2025-09-17 Add code to be able to not create calendar entries when the date occurs before new config date ExtInitDeliveryDt.
+# Paul Baranoski 2025-11-17 Add code for Extract Obsolete Date. This will prevent calendar entries from being created after the ExtObsoleteDt.
 ######################################################################################
 set +x
 
@@ -323,9 +325,14 @@ function buildWkCal4Yr() {
 
 	echo ""  >> ${LOGNAME}
 	echo "In function buildWkCal4Yr" >> ${LOGNAME}
-	
+
+	p_ExtInitDeliveryDt=$1
+	p_ExtObsoleteDt=$2
 	# output record = input config record
-	p_out_rec=$1
+	p_out_rec=$3
+
+	echo "p_ExtInitDeliveryDt=${p_ExtInitDeliveryDt}"  >> ${LOGNAME} 
+	echo "p_ExtObsoleteDt=${p_ExtObsoleteDt}"  >> ${LOGNAME} 	
 	echo "p_out_rec=${p_out_rec}"  >> ${LOGNAME} 
 
 	# Set date to first day of year
@@ -358,13 +365,45 @@ function buildWkCal4Yr() {
 		########################################################
 		# Build Calendar record --> append calendar info to 
 		#                           config record
-		########################################################	
+		########################################################
+        # if its for a day of week we need		
 		if  [ "${bCrRec}" != "" ];then
 			echo "extDt=${nextDt}"  >> ${LOGNAME} 
 			dowAbbrev=`date -d ${nextDt} +%a `
 			
-			# output record and add Extract day and NOD
-			echo "${nextDt}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+			echo "Perform logic to determine if date is within the Initial Delivery Date and/or the Extract Obsolete Date" >> ${LOGNAME} 
+			
+			if [[ "${p_ExtInitDeliveryDt}" != "" && "${p_ExtObsoleteDt}" != "" ]];then  
+
+				if [[ ! "${nextDt}" < "${p_ExtInitDeliveryDt}" &&  "${nextDt}" < "${p_ExtObsoleteDt}" ]];then
+					echo "${nextDt}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+				else
+					echo "The nextDt ${nextDt} is before the Initial Deliver Date ${p_ExtInitDeliveryDt} or after the Obsolete Date ${p_ExtObsoleteDt} for Extract. Not adding calendar record."	 >> ${LOGNAME} 		
+				fi
+			
+			elif [[ "${p_ExtInitDeliveryDt}" != "" ]];then  
+				# nextDt >= p_ExtInitDeliveryDt --> write record
+				if ! [[ "${nextDt}" < "${p_ExtInitDeliveryDt}" ]];then
+					# write rec
+					echo "${nextDt}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+				else
+					echo "The nextDt ${nextDt} is before the InitDeliver Date ${p_ExtInitDeliveryDt} for Extract. Not adding calendar record." >> ${LOGNAME} 		
+				fi
+					
+			elif [[ "${p_ExtObsoleteDt}" != "" ]];then  
+				# nextDt < p_ExtObsoleteDt --> write record
+				if  [[ "${nextDt}" < "${p_ExtObsoleteDt}" ]];then
+					# write rec
+					echo "${nextDt}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+				else
+					echo "The nextDt ${nextDt} is after the ExtObsoleteDt ${p_ExtObsoleteDt} for Extract. Not adding calendar record." >> ${LOGNAME} 		
+				fi				
+			
+			else
+
+				echo "${nextDt}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+			fi
+
 		fi
 
 	done
@@ -380,17 +419,24 @@ function buildQtrCal4Yr() {
 	#             LW,FW,LD,FD,
 	#             "FRI-2" (2nd FRI) "FRI-L" (last FRI)
 	#             "FRI-F" (first FRI)
+	#
+    # p_ExtInitDeliveryDt: YYYY-MM-DD 
+    # p_ExtObsoleteDt: YYYY-MM-DD	
 	###################################################
 	echo ""  >> ${LOGNAME}
 	echo "In function buildQtrCal4Yr"  >> ${LOGNAME} 
 	
 	p_Months=$1
 	p_Month_Day=$2
-	p_out_rec=$3
+	p_ExtInitDeliveryDt=$3
+	p_ExtObsoleteDt=$4
+	p_out_rec=$5
 	
 	echo "p_Months=${p_Months}"   >> ${LOGNAME} 
 	echo "p_Month_Day=${p_Month_Day}"   >> ${LOGNAME} 
-
+	echo "p_ExtInitDeliveryDt=${p_ExtInitDeliveryDt}"   >> ${LOGNAME} 
+	echo "p_ExtObsoleteDt=${p_ExtObsoleteDt}"   >> ${LOGNAME} 
+	
 	###################################################	
 	# Convert Months comma-delimited string to space-delimited
 	# Ex. "JAN,APR,JUL,OCT" --> "JAN APR JUL OCT"
@@ -563,7 +609,43 @@ function buildQtrCal4Yr() {
 		#################################################		
 		dowAbbrev=`date -d ${QtrDate} +%a `		
 		# output record and add Extract day and NOD
-		echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+		#echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+
+		#######################################################
+		# NOTE: Do not Write Calendar record when QtrDate is before the p_ExtInitDeliveryDt
+		#######################################################
+		# if ExtInitDeliveryDt AND  p_ExtObsoleteDt are not empty strings
+		if [[ "${p_ExtInitDeliveryDt}" != "" && "${p_ExtObsoleteDt}" != "" ]];then  
+
+			if [[ ! "${QtrDate}" < "${p_ExtInitDeliveryDt}" &&  "${QtrDate}" < "${p_ExtObsoleteDt}" ]];then
+				echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+            else
+                echo "The QtrDate ${sQtrDate} is before the Initial Deliver Date ${p_ExtInitDeliveryDt} or after the Obsolete Date ${p_ExtObsoleteDt} for Extract. Not adding calendar record."	 >> ${LOGNAME} 		
+			fi
+		
+		elif [[ "${p_ExtInitDeliveryDt}" != "" ]];then  
+			# QtrDate >= p_ExtInitDeliveryDt --> write record
+			if ! [[ "${QtrDate}" < "${p_ExtInitDeliveryDt}" ]];then
+				# write rec
+				echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+			else
+				echo "The QtrDate ${QtrDate} is before the InitDeliver Date ${p_ExtInitDeliveryDt} for Extract. Not adding calendar record." >> ${LOGNAME} 		
+			fi
+				
+		elif [[ "${p_ExtObsoleteDt}" != "" ]];then  
+			# QtrDate < p_ExtObsoleteDt --> write record
+			if  [[ "${QtrDate}" < "${p_ExtObsoleteDt}" ]];then
+				# write rec
+				echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+			else
+				echo "The QtrDate ${QtrDate} is after the ExtObsoleteDt Date ${p_ExtObsoleteDt} for Extract. Not adding calendar record." >> ${LOGNAME} 		
+			fi				
+		
+		else
+
+			echo "${QtrDate}${FLD_DELIM}${dowAbbrev}${FLD_DELIM}${p_out_rec}"  >> ${DATADIR}${RUN_CALENDAR_OUTPUT_FILE}
+		fi
+
 		
 	done		
 
@@ -577,19 +659,28 @@ function buildQtrCal4Yr() {
 #####################################################################################
 
 ########################################################
+# Remove CR characters at end of record  
+########################################################
+sed -i 's/\r//g' ${DATADIR}${RUN_CONFIG_FILE}   2>> ${LOGNAME}
+
+########################################################
 # Loop thru config file records   
 ########################################################
 while read config_rec 
 do
 	echo ""  >> ${LOGNAME} 
-	echo "*********************************************"  >> ${LOGNAME} 
-	echo "config_rec=${config_rec}"  >> ${LOGNAME} 
+	echo "*********************************************"  >> ${LOGNAME}
+	
+	# Adding delimiter at end of record. awk needs that ending delimiter to properly identify last field 
+	config_rec=${config_rec}	
+	echo "config_rec=${config_rec}"  >> ${LOGNAME}
+
 	
 	####################################################
 	# parse input record
 	# Example: Blbtn,Blue Button,W,M;F,,,N,EFT 
 	####################################################
-	ExtractID=`echo ${config_rec} | awk -F'|', '{print $1}' ` 
+	ExtractID=`echo ${config_rec} | awk -F'|' '{print $1}' ` 
 	Ext_Desc=`echo ${config_rec} | awk -F'|' '{print $2}' `
 	TimeFrame=`echo ${config_rec} | awk -F'|' '{print $3}' `
 	DOW_DOM=`echo ${config_rec} | awk -F'|' '{print $4}' `
@@ -598,6 +689,8 @@ do
 	FinderFileReq=`echo ${config_rec} | awk -F'|' '{print $7}' `
 	FF_Pre_Processing=`echo ${config_rec} | awk -F'|' '{print $8}' `
 	DeliveryMethod=`echo ${config_rec} | awk -F'|' '{print $9}' `
+	ExtInitDeliveryDt=`echo ${config_rec} | awk -F'|' '{print $14}' `
+	ExtObsoleteDt=`echo ${config_rec} | awk -F'|' '{print $15}' `
 	
 	####################################################
 	# Create year calendar records for extract
@@ -611,14 +704,14 @@ do
 			echo "DOW_DOM=${DOW_DOM}"  >> ${LOGNAME} 
 			
 			buildDaysMatchMask "${DOW_DOM}"
-			buildWkCal4Yr "${config_rec}"
+			buildWkCal4Yr "${ExtInitDeliveryDt}" "${ExtObsoleteDt}" "${config_rec}"
 			;;
 		M)
-			buildQtrCal4Yr "${MON_ABREVS_DELIM}" "${DOW_DOM}" "${config_rec}"
+			buildQtrCal4Yr "${MON_ABREVS_DELIM}" "${DOW_DOM}" "${ExtInitDeliveryDt}" "${ExtObsoleteDt}" "${config_rec}"
 			;;
 			
 		Q|S|A) 
-			buildQtrCal4Yr "${Months}" "${Month_Day}" "${config_rec}"
+			buildQtrCal4Yr "${Months}" "${Month_Day}" "${ExtInitDeliveryDt}" "${ExtObsoleteDt}" "${config_rec}"
 			;;
 			
 		*)

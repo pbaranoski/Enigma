@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ########################################################################################################
 # Name:  CalendarExtReportsDriver.py
 #
@@ -14,6 +13,9 @@
 #      
 #   
 # Paul Baranoski   2025-07-22 Create Module.
+# Paul Baranoski   2025-08-27 Modify logic to give rootLogger obj a logger name to ensure separate logger when calling functions in imported code.
+# Paul Baranoski   2025-09-26 Modify subprocess.check_output to subprocess.run which allows to capture stderr as well as stdout. 
+#                             Add write_sp_info_2_log function and companion logging import module LoggerStandard.                            
 ########################################################################################################
 
 import logging
@@ -37,6 +39,9 @@ from SET_XTR_ENV import *
 # contains function to extract extract filenames and record counts
 from FilenameCounts import getExtractFilenamesAndCounts
 
+# Our include members
+import LoggerStandard as EnigmaLog
+
 CALENDAR_BUCKET = rf"{XTR_BUCKET}/{CALENDAR_BUCKET_FLDR}"
 
 
@@ -54,26 +59,13 @@ RUNDIR = "/app/IDRC/XTR/CMS/scripts/run/"
 #############################################################
 # Functions
 #############################################################
-def setLogging(LOGNAME):
-
-    # Configure root logger
-    #logging.config.fileConfig(os.path.join(config_dir,"loggerConfig.cfg"))
-    
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(funcName)-22s %(message)s",
-        encoding='utf-8', datefmt="%Y-%m-%d %H:%M:%S", 
-        #filename=f"{LOG_DIR}BuildRunExtCalendar_{TMSTMP}.log"
-        handlers=[
-        logging.FileHandler(f"{LOGNAME}"),
-        logging.StreamHandler(sys.stdout)],    
-        level=logging.INFO)
- 
-    global rootLogger
-    rootLogger = logging.getLogger() 
-  
-    os.chmod(LOG_DIR, 0o777)  # for Python3
-    
-    #logger.setLevel(logging.INFO)
+def write_sp_info_2_log(sp_info):
+        
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stdout) 
+    # Send stdout to log using "%\n%s" to ensure output is broken by newlines
+    rootLogger.info("\n%s", sp_info.stderr) 
+    rootLogger.info(f"{sp_info.returncode=}")  
 
 
 def validate_dt(sDate2Validate, sFormat):
@@ -90,8 +82,8 @@ def validate_dt(sDate2Validate, sFormat):
         ## Send Failure email	
         SUBJECT=f"CalendarExtReportsDriver.py - Failed ({ENVNAME})"
         MSG=f"Parameter date {sDate2Validate} is either an invalid date or not formatted correctly. Date must be in YYYY-MM-DD format. Process failed. "
-        sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-        rootLogger.info(sp_info) 
+        sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+        write_sp_info_2_log(sp_info)
         
         sys.exit(12)
  
@@ -116,7 +108,8 @@ def main_processing_loop():
         # Establish log file
         # NOTE: the \n before "started at" line is to ensure that this information is on a separate line, left-justified without any other logging info preceding it        
         ##########################################
-        setLogging(LOGNAME)
+        global rootLogger
+        rootLogger = EnigmaLog.setLogging(LOGNAME)
         rootLogger.info(f"\nCalendarExtReportsDriver.py started at {TMSTMP}")
 
         ###########################################################
@@ -235,18 +228,19 @@ def main_processing_loop():
             rootLogger.info("Start execution of CalendarExtReports.py program")
 
             try:
-                sp_info = subprocess.check_output(['python3', 'CalendarExtReports.py'], text=True)
-                rootLogger.info(sp_info) 
+                sp_info = subprocess.run(['python3', 'CalendarExtReports.py'], capture_output=True, text=True, check=True)
+                write_sp_info_2_log(sp_info) 
                 
             except subprocess.CalledProcessError as e:
                 rootLogger.error(f"Calling CalendarExtReports.py failed with return code {e.returncode}")
-                rootLogger.error(e.output)
+                rootLogger.error(e.stdout)
+                rootLogger.error(e.stderr)
                 
                 ## Send Failure email	
                 SUBJECT=f"CalendarExtReports.py - Failed ({ENVNAME})"
-                MSG=f"ython script CalendarExtReports.py has failed. "
-                sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
-                rootLogger.info(sp_info) 
+                MSG=f"python script CalendarExtReports.py has failed. "
+                sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+                write_sp_info_2_log(sp_info) 
 
                 sys.exit(12)    
 
@@ -282,7 +276,7 @@ def main_processing_loop():
                 ## Send Failure email	
                 SUBJECT=f"CalendarExtReports_Driver.py  - Failed ({ENVNAME})"
                 MSG=f"Calendar extract file {s3CalendarFolder_n_filename} could not be retrieved from S3. Process failed. "
-                sp_info = subprocess.check_output(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], text=True)
+                sp_info = subprocess.run(['python3', 'sendEmail.py', CMS_EMAIL_SENDER, ENIGMA_EMAIL_FAILURE_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True)
                 rootLogger.info(sp_info)              
 
  
@@ -404,15 +398,16 @@ def main_processing_loop():
             MSG=f"Pending Extracts in the next {NOF_DAYS} days from {begStartRptDt}. . .<br><br>{RPT_INFO}"
 
             try:
-                sp_info = subprocess.check_output(['python3', 'sendEmailHTML.py', CMS_EMAIL_SENDER, CALENDAR_EMAIL_SUCCESS_RECIPIENT, SUBJECT, MSG], text=True)
-                rootLogger.info(sp_info)
+                sp_info = subprocess.run(['python3', 'sendEmailHTML.py', CMS_EMAIL_SENDER, CALENDAR_EMAIL_SUCCESS_RECIPIENT, SUBJECT, MSG], capture_output=True, text=True, check=True )
+                write_sp_info_2_log(sp_info)
                 
             except subprocess.CalledProcessError as e:
                 rootLogger.error(f"sendEmail.py failed with return code {e.returncode}")
-                rootLogger.error(e.output)
+                rootLogger.error(f"Calling CalendarExtReports.py failed with return code {e.returncode}")
+                rootLogger.error(e.stdout)
+                rootLogger.error(e.stderr)
 
                 sys.exit(12)    
-
 
 
         ####################################################################
